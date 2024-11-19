@@ -11,15 +11,15 @@
   let showCircles = true;
   let totalWidth = 300;  // Default total width
 
-  const glassThickness = 1;  // Glass thickness
+  const glassThickness = 0.25;  // Glass thickness
   const sharedMaterial = new THREE.MeshPhysicalMaterial({
-        metalness: 0,
-        roughness: 1,
-        envMapIntensity: 0.1,
+        metalness: 0.25,
+        roughness: 0.5,
+        envMapIntensity: 0.9,
         clearcoat: 0.75,
         transparent: true,
         transmission: 0.9,
-        opacity: 1.0,
+        opacity: 0.85,
         reflectivity: 0.1,
   });
 
@@ -45,7 +45,7 @@
       // Renderer
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.toneMapping = THREE.NeutralToneMapping;
-      renderer.toneMappingExposure = 0.4;
+      renderer.toneMappingExposure = 0.2;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
