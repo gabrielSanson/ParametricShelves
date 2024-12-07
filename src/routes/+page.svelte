@@ -13,14 +13,14 @@
 
   const glassThickness = 0.25;  // Glass thickness
   const sharedMaterial = new THREE.MeshPhysicalMaterial({
-        metalness: 0.25,
-        roughness: 0.5,
-        envMapIntensity: 0.9,
-        clearcoat: 0.75,
+        metalness: 0.1,
+        roughness: 0.75,
+        envMapIntensity: 0.1,
+        clearcoat: 0.5,
         transparent: true,
-        transmission: 0.9,
-        opacity: 0.85,
-        reflectivity: 0.1,
+        transmission: 0,
+        opacity: 0.5,
+        reflectivity: 1,
   });
 
   // Function to initialize the scener
@@ -33,7 +33,8 @@
       hdriLoader.load("/environment5.hdr", function (texture) {
           texture.mapping = THREE.EquirectangularReflectionMapping;
           scene.environment = texture;  // Set the environment map
-          scene.background = texture
+          // scene.background = texture
+          scene.background = new THREE.Color(0xffffff);
       });
 
       // Camera
@@ -227,13 +228,14 @@
   <style>
     .parametric-settings{
       position: fixed;
-      background-color: white;
+      border-color: black;
+      background-color: rgb(230,230,230);
       display: flex;
       flex-direction: column;
       bottom: 16px;
       left: 16px;
       padding: 32px;
-      width: 256px;
+      width: 300px;
       padding: 0px 16px 16px 16px;
       gap: 6px
     }
@@ -274,8 +276,8 @@
 
       <h3 style="height: 48px; width: 100%;text-align:start;display:flex; justify-content:start;align-items:center">Estante de Vidro : </h3>
       <div class="option" >
-        <label for="totalWidth">Largura Total</label>
-        <input type="number" id="totalWidth" value="150" step="10">
+        <label for="totalWidth">Largura Total (cm)</label>
+        <input type="number" id="totalWidth"  value="150" step="10">
       </div>
       
       <div class="option">
@@ -290,14 +292,14 @@
         <label for="depthBars">Profundidade</label>
         <input type="number" id="depthBars" value="1" min="1">
       </div>
-      <div class="option">
-        <label for="depthPerRow">Profundidade por Linha (separadas por vírgula)</label>
-        <input type="text" id="depthPerRow" value="60,50,40,30,20">
-      </div>
-      <div class="option">
-        <label for="heightsPerRow">Alturas por Linha (separadas por vírgula)</label>
-        <input type="text" id="heightsPerRow" value="30,20,20,10,10">
-      </div>
+        <div class="option">
+          <label  for="depthPerRow">Profundidade por Linha (cm)</label>
+          <input type="text" id="depthPerRow" value="60,50,40,30,20">
+        </div>
+        <div class="option">
+          <label for="heightsPerRow">Alturas por Linha (cm)</label>
+          <input type="text" id="heightsPerRow" value="30,20,20,10,10">
+        </div>
      
       <div class="option">
         <label class="form-check-label" for="showCircles">Mostrar Círculos</label>
