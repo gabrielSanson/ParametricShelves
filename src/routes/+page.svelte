@@ -1,15 +1,36 @@
 <script>
+    import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';  // Import RGBELoader
   
+
+  
+
+
+
+  let totalWidth = $page.url.searchParams.get("totalWidth") || "250"
+
+  let horizontalBars = $page.url.searchParams.get("horizontalBars") || "250"
+  let verticalBars = $page.url.searchParams.get("verticalBars") || "5"
+  // let depthBars = $page.url.searchParams.get("depthBars") || "5"
+  let depthPerRow = $page.url.searchParams.get("depthPerRow") || "60,50,40,30,20"
+  let heightsPerRow = $page.url.searchParams.get("heightsPerRow") || "60,50,40,30,20"
+  let doubleSided =  $page.url.searchParams.get("doubleSided") || "false"
+  // horizontalBars
+  // verticalBars
+  // depthBars
+  // depthForRow
+  // heightsPerRow
+
+
+
   let scene, camera, renderer;
   let dividers = [];
   let circles = [];
   let markerIndex = 1;
   let showCircles = true;
-  let totalWidth = 300;  // Default total width
 
   const glassThickness = 0.25;  // Glass thickness
   const sharedMaterial = new THREE.MeshPhysicalMaterial({
@@ -272,33 +293,35 @@
     }
   </style>
   
+
+
 <div class="parametric-settings" >
 
       <h3 style="height: 48px; width: 100%;text-align:start;display:flex; justify-content:start;align-items:center">Estante de Vidro : </h3>
       <div class="option" >
         <label for="totalWidth">Largura Total (cm)</label>
-        <input type="number" id="totalWidth"  value="150" step="10">
+        <input type="number" id="totalWidth" bind:value={totalWidth} step="10">
       </div>
       
       <div class="option">
         <label for="horizontalBars">Linhas</label>
-        <input type="number" id="horizontalBars" value="3" min="1">
+        <input type="number" id="horizontalBars" bind:value={horizontalBars} min="1">
       </div>
       <div class="option">
         <label for="verticalBars">Colunas</label>
-        <input type="number" id="verticalBars" value="3" min="1">
+        <input type="number" id="verticalBars" bind:value={verticalBars} min="1">
       </div>
       <div class="option" style="display:none;">
         <label for="depthBars">Profundidade</label>
-        <input type="number" id="depthBars" value="1" min="1">
+        <input type="number" id="depthBars" value=1 min="1">
       </div>
         <div class="option">
           <label  for="depthPerRow">Profundidade por Linha (cm)</label>
-          <input type="text" id="depthPerRow" value="60,50,40,30,20">
+          <input type="text" id="depthPerRow" bind:value={depthPerRow}>
         </div>
         <div class="option">
           <label for="heightsPerRow">Alturas por Linha (cm)</label>
-          <input type="text" id="heightsPerRow" value="30,20,20,10,10">
+          <input type="text" id="heightsPerRow" bind:value={heightsPerRow}>
         </div>
      
       <div class="option">
@@ -310,7 +333,7 @@
       <div class="option">
         <label class="form-check-label" for="doubleSided">Estrutura Dupla</label>
 
-        <input class="form-check-input" type="checkbox" id="doubleSided">
+        <input class="form-check-input" type="checkbox" id="doubleSided"  bind:checked={doubleSided}>
       </div>
       
       
