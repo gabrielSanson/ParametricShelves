@@ -11,6 +11,9 @@
     Width: 0,
     Edge: 0,
   };
+  function mapRange(value, inMin, inMax, outMin, outMax) {
+    return outMin + ((value - inMin) * (outMax - outMin)) / (inMax - inMin);
+}
 
   function init() {
     // Create the scene
@@ -50,6 +53,7 @@
     const loader = new GLTFLoader();
     loader.load('/shelves.gltf', (gltf) => {
       model = gltf.scene;
+      model.name = "section"
       model.position.set(0, 0, 0);
       model.scale.set(100, 100, 100);
       scene.add(model);
@@ -92,8 +96,15 @@
 
   function generateStructure(){
     // re-intance the Model
+    /// Remap the input (real) value to shape key blend space
+    var real_width = mapRange(with_value_from_input,0.1,2,0.0,1)
+
+    /// 0.1 when input = 0
+    var real_height = mapRange(height_value_from_input,0.1,1,0,1)
+    var real_depth = mapRange(depth_value_from_input,0.1,1,0,1)
+    
     const createInstance = (position, scale) => {
-      const instance = baseModel.clone(); // Clone the base model
+      const instance = model.clone(); // Clone the base model
       instance.position.set(position.x, position.y, position.z); // Set position
       instance.scale.set(scale.x, scale.y, scale.z); // Set scale
       scene.add(instance); // Add instance to the scene
@@ -147,8 +158,8 @@
   <input
     id="widthSlider"
     type="range"
-    min="0"
-    max="1"
+    min="0.0"
+    max="2"
     step="0.01"
     on:input={(e) => updateShapeKey('Width', e.target.value)}
   />
