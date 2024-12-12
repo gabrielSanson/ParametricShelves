@@ -73,6 +73,10 @@
       });
     });
 
+
+
+
+
     // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -84,6 +88,16 @@
   function animate() {
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
+  }
+
+  function generateStructure(){
+    // re-intance the Model
+    const createInstance = (position, scale) => {
+      const instance = baseModel.clone(); // Clone the base model
+      instance.position.set(position.x, position.y, position.z); // Set position
+      instance.scale.set(scale.x, scale.y, scale.z); // Set scale
+      scene.add(instance); // Add instance to the scene
+    };
   }
 
   // Update the shape key influences based on user input
@@ -104,41 +118,20 @@
   });
 </script>
 
-<style>
-  body {
-    margin: 0;
-    padding: 0;
-  }
 
-  #canvas-container {
-    width: 100%;
-    height: 100vh;
-  }
-
-  .controls {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 10px;
-    border-radius: 5px;
-  }
-
-  .controls label {
-    color: white;
-    display: block;
-    margin-bottom: 5px;
-  }
-
-  .controls input {
-    width: 100%;
-  }
-</style>
 
 <div id="canvas-container"></div>
 
 <!-- Controls for adjusting shape key influences -->
+<div class="parametric-menu" >
+  Total Width
+  <input id="total_width" type="range" min="0"max="2" step="0.01" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
+  Vertical Sepparators
+  <input id="v_sepparators" type="number" min="0"max="100" value="4" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
+</div>
+
+
+
 <div class="controls">
   <label for="depthSlider">Depth:</label>
   <input
@@ -170,3 +163,40 @@
     on:input={(e) => updateShapeKey('Edge', e.target.value)}
   />
 </div>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #canvas-container {
+    width: 100%;
+    height: 100vh;
+  }
+
+  .controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 5px;
+  }
+
+  .controls label {
+    color: white;
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  .controls input {
+    width: 100%;
+  }
+  .parametric-menu{
+    width: 100%;
+    position: absolute;
+    bottom: 10px;
+  }
+</style>
