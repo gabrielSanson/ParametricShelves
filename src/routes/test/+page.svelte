@@ -94,22 +94,80 @@
     renderer.render(scene, camera);
   }
 
-  function generateStructure(){
-    // re-intance the Model
-    /// Remap the input (real) value to shape key blend space
-    var real_width = mapRange(with_value_from_input,0.1,2,0.0,1)
+//// maps shape key "blend amount" to real width corresponding values
+/// 10cm when input = 0 , 2m when input = 1
+  // var real_width = mapRange(width_value_from_input,0.1,2,0.0,1)
+        /// Width input is is "total_width"
+        /// Vsepparator input is "v_sepparators"
 
-    /// 0.1 when input = 0
-    var real_height = mapRange(height_value_from_input,0.1,1,0,1)
-    var real_depth = mapRange(depth_value_from_input,0.1,1,0,1)
-    
-    const createInstance = (position, scale) => {
-      const instance = model.clone(); // Clone the base model
-      instance.position.set(position.x, position.y, position.z); // Set position
-      instance.scale.set(scale.x, scale.y, scale.z); // Set scale
-      scene.add(instance); // Add instance to the scene
-    };
+  /// 10cm when input = 0 , 1m when input = 1
+  // var real_height = mapRange(height_value_from_input,0.1,1,0,1)
+  // var real_depth = mapRange(depth_value_from_input,0.1,1,0,1)
+
+
+
+
+// Main function to generate the structure
+function generateStructure() {
+  if (!model) {
+    console.error("Model not loaded yet.");
+    return;
   }
+
+  // Fetch input values
+  const totalWidthInput = parseFloat(document.getElementById("total_width").value);
+  const vSeparatorsInput = parseInt(document.getElementById("v_sepparators").value, 10);
+  const heightInput = parseFloat(document.getElementById("height").value);
+  const depthInput = parseFloat(document.getElementById("depth").value);
+
+  // Map inputs ( real value )  to shape key blend_amount ( 0.0 to 1.0 )
+  const realWidth = mapRange(totalWidthInput,0.1, 2, 0, 1); // 10cm to 2m
+  const realHeight = mapRange(heightInput, 0.1, 1, 0, 1); // 10cm to 1m
+  const realDepth = mapRange(depthInput, 0.1, 1, 0, 1); // 10cm to 1m
+
+  // Calculate instance width
+  const instanceWidth = realWidth / vSeparatorsInput;
+
+  // Clear existing generated instances from the scene
+  scene.children.forEach((child) => {
+    if (child.name === "section_instance") {
+      scene.remove(child);
+    }
+  });
+
+  const basePosition = new THREE.Vector3(0, 0, 0);
+
+  // Generate instances
+  for (let i = 0; i < vSeparatorsInput; i++) {
+    // Clone the base model
+    const instance = model.clone();
+    instance.name = "section_instance"; // Tag for cleanup
+
+    // Set position with offset
+    instance.position.set(basePosition.x + i * instanceWidth, basePosition.y, basePosition.z);
+
+    // Apply shape key values
+    instance.traverse((child) => {
+      if (child.isMesh && child.morphTargetDictionary) {
+        const widthInfluence = mapRange(i, 0, vSeparatorsInput - 1, 0, 1); // Adjust based on position
+        // const widthInfluence = mapRange(i, 0, vSeparatorsInput - 1, 0, 1); // Adjust based on position
+        const depthInfluence = realDepth; // Mapped depth value
+        const heightInfluence = realHeight; // Mapped height value
+
+        child.morphTargetInfluences[child.morphTargetDictionary["Width"]] = widthInfluence;
+        child.morphTargetInfluences[child.morphTargetDictionary["Depth"]] = depthInfluence;
+        child.morphTargetInfluences[child.morphTargetDictionary["Height"]] = heightInfluence;
+      }
+    });
+
+    // Add the instance to the scene
+    scene.add(instance);
+  }
+}
+
+
+
+
 
   // Update the shape key influences based on user input
   const updateShapeKey = (name, value) => {
@@ -124,6 +182,15 @@
   };
 
   onMount(() => {
+
+  // Attach event listeners to update the structure dynamically
+  // document.getElementById("total_width").addEventListener("input", generateStructure);
+  // document.getElementById("v_sepparators").addEventListener("input", generateStructure);
+  // document.getElementById("height").addEventListener("input", generateStructure);
+  // document.getElementById("depth").addEventListener("input", generateStructure);
+
+
+
     init();
     animate();
   });
@@ -136,9 +203,18 @@
 <!-- Controls for adjusting shape key influences -->
 <div class="parametric-menu" >
   Total Width
-  <input id="total_width" type="range" min="0"max="2" step="0.01" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
+  <input id="total_width" type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
   Vertical Sepparators
   <input id="v_sepparators" type="number" min="0"max="100" value="4" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
+
+  Height
+  <input id="height" type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Height', e.target.value)}  >
+  Depth
+  <input id="depth" type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Depth', e.target.value)}  >
+
+  <button on:click={generateStructure} > Generate Structure </button>
+
+  
 </div>
 
 
