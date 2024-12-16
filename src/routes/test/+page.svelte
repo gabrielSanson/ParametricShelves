@@ -111,7 +111,7 @@
           const index = child.morphTargetDictionary[name];
           //// Magic happens here
           let morph_value = mapRange(value,0.1,2,0,1)
-          child.morphTargetInfluences[index] = morph_value/vertical_separators ;
+          child.morphTargetInfluences[index] = morph_value ;
         }
       });
     }
