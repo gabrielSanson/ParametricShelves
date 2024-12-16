@@ -144,7 +144,7 @@
 
           for (let j = 0; j < dBars; j++) {
               const geometry = new THREE.BoxGeometry(shelfWidth, glassThickness, depthForRow);
-              geometry.receiveShadow = true;
+              geometry.receiveShadow = true;  
               geometry.castShadow = true;
               const horizontalShelf = new THREE.Mesh(geometry, sharedMaterial);
 
