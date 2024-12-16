@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+    import { passive } from 'svelte/legacy';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -103,19 +104,37 @@
 
 
 
-  // Update the shape key influences based on user input
-  const updateShapeKey = (name, value) => {
-    if (model) {
-      model.traverse((child) => {
-        if (child.isMesh && child.morphTargetDictionary[name] !== undefined) {
-          const index = child.morphTargetDictionary[name];
-          //// Magic happens here
-          let morph_value = mapRange(value,0.1,2,0,1)
-          child.morphTargetInfluences[index] = morph_value ;
+
+// Update the shape key influences based on user input
+const updateShapeKey = (name) => {
+  if (model) {
+    model.traverse((child) => {
+      if (child.isMesh && child.morphTargetDictionary[name] !== undefined) {
+        const index = child.morphTargetDictionary[name];
+
+        // Handle shape key updates
+        switch (name) {
+          case "Width":
+            const morphValue = mapRange(total_width/vertical_separators, 0.1, 2, 0, 1);
+            child.morphTargetInfluences[index] = morphValue;
+            break;
+
+          case "Depth":
+            // Placeholder for "Depth" logic
+            break;
+
+          case "Height":
+            // Placeholder for "Height" logic
+            break;
+
+          default:
+            // Handle unsupported shape keys if needed
+            console.warn(`Unsupported shape key: ${name}`);
         }
-      });
-    }
-  };
+      }
+    });
+  }
+};
 
   onMount(() => {
     init();
@@ -130,14 +149,14 @@
 <!-- Controls for adjusting shape key influences -->
 <div class="parametric-menu" >
   Total Width
-  <input  bind:value={total_width} type="number"  min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
+  <input  bind:value={total_width} type="number"  min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Width')}  >
   Vertical Sepparators
-  <input  bind:value={vertical_separators} type="number"  min="0"max="100" on:input={(e) => updateShapeKey('Width', e.target.value)}  >
+  <input  bind:value={vertical_separators} type="number"  min="0"max="100" on:input={(e) => updateShapeKey('Width')}  >
 
   Height
-  <input type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Height', e.target.value)}  >
+  <input type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Height')}  >
   Depth
-  <input type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Depth', e.target.value)}  >
+  <input type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Depth')}  >
 
   <!-- <button on:click={generateStructure} > Generate Structure </button> -->
 
