@@ -24,24 +24,58 @@
 
   function init() {
     setupScene()
-    loadModel('base_panel.gltf');
-    
-    loadModel('back_panel.gltf')
-    loadModel('front_panel.gltf')
-    loadModel('sepparator.gltf')
-    
+    // Load the GLTF model
+    const loader = new GLTFLoader();
+    loader.load('/shelves.gltf', (gltf) => {
+    model = gltf.scene;
+    model.name = "section";
+    model.position.set(0, 0, 0);
+    model.scale.set(100, 100, 100);
+    console.log(model.morphTargetInfluences);
+    scene.add(model);
+
+    // Traverse the model and apply material changes
+    model.traverse((child) => {
+      if (child.isMesh) {
+        console.log(child.name); // Mesh name
+        console.log(child.morphTargetDictionary); // Morph targets dictionary
+        
+        // Set the material to be double-sided and apply a color
+        child.material.side = THREE.DoubleSide; // Make material double-sided
+        child.material.color.set(0x00ff00); // Set the color to green (you can change this)
+
+        if (child.morphTargetDictionary) {
+          Object.keys(child.morphTargetDictionary).forEach((key) => {
+            console.log(`Shape Key: ${key}`);
+          });
+        }
+      }
+    });
+
+    // Generate a row of models after the base model is loaded
     const rowCount = 5; // Number of models in a row
     const spacing = total_width / vertical_separators || 10; // Default spacing if not set
+    const rowModels = generateRow(model, rowCount, spacing);
 
+    console.log("Generated row of models:", rowModels);
+  });
+
+
+    // Generate a row of models
+    const rowCount = 5; // Number of models in a row
+    const spacing = total_width/vertical_separators; // Distance between models
+    const rowModels = generateRow(model, rowCount, spacing);
+
+    console.log("Generated row of models:", rowModels);
+
+
+    // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
-  
   }
-    
-
 
  function animate() {
    requestAnimationFrame(animate);
@@ -81,44 +115,6 @@
 
  }
 
-function loadModel(path) { 
-  const loader = new GLTFLoader();
-  loader.load(path, (gltf) => {
-    model = gltf.scene;
-    model.name = path;
-    model.position.set(0, 0, 0);
-    model.scale.set(100, 100, 100);
-    
-
-    model.traverse((child) => {
-      if (child.isMesh) {
-        console.log(child.name); // Mesh name
-        console.log(child.morphTargetDictionary); // Morph targets dictionary
-        
-        // Set the material to be double-sided and apply a color
-        child.material.side = THREE.DoubleSide; // Make material double-sided
-        child.material.color.set(0x00ff00); // Set the color to green (you can change this)
-
-        if (child.morphTargetDictionary) {
-          Object.keys(child.morphTargetDictionary).forEach((key) => {
-            console.log(`Shape Key: ${key}`);
-          });
-        }
-      }
-      scene.add(model)  
-    });
-
-
-
-
-  })
-}
-  
- 
-  
-
-
-
  function generateRow(model, count, spacing) {
   const models = []; // Array to hold generated models
   if (!model) {
@@ -138,6 +134,12 @@ function loadModel(path) {
 }
 
 
+
+
+  
+
+
+
 // Update the shape key influences based on user input
 const updateShapeKey = (name) => {
   if (model) {
@@ -148,19 +150,16 @@ const updateShapeKey = (name) => {
         // Handle shape key updates
         switch (name) {
           case "Width":
-            console.log(name)
             let morphValue = mapRange(total_width/vertical_separators, 0.1, 2, 0, 1);
             child.morphTargetInfluences[index] = morphValue;
             break;
 
           case "Depth":
-          console.log(name)
             morphValue = mapRange(total_width/vertical_separators, 0.1, 2, 0, 1);
             child.morphTargetInfluences[index] = morphValue;
             break;
 
           case "Height":
-            console.log(name)
             // Placeholder for "Height" logic
             break;
 
@@ -177,7 +176,6 @@ const updateShapeKey = (name) => {
     init();
     animate();
   });
-
 </script>
 
 
