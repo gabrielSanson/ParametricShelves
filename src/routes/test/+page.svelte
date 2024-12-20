@@ -1,53 +1,76 @@
 <script>
   import { onMount } from 'svelte';
-    import { passive } from 'svelte/legacy';
   import * as THREE from 'three';
-  import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
+  import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-  let total_width
-  let vertical_separators
-  let height_per_row
-  let depth_per_row
+
+
+  let total_width = 1
+  let vertical_separators = 1.0
+  let height_per_row = 1.0
+  let depth_per_row= 1.0
+
+  let base_panel 
+  let back_panel 
+  let front_panel
+  let start_separator 
+  let end_separator
 
   let scene, camera, renderer, model;
-  let shapeKeyInfluences = {
-    Depth: 0,
-    Width: 0,
-    Edge: 0,
-  };
   function mapRange(value, inMin, inMax, outMin, outMax) {
     return outMin + ((value - inMin) * (outMax - outMin)) / (inMax - inMin);
 }
 
-  function init() {
-    setupScene()
-    loadModel('base_panel.gltf');
+function init() {
+  setupScene()
     
-    loadModel('back_panel.gltf')
-    loadModel('front_panel.gltf')
-    loadModel('sepparator.gltf')
-    
-    const rowCount = 5; // Number of models in a row
-    const spacing = total_width / vertical_separators || 10; // Default spacing if not set
+  base_panel = loadModel('base_panel.gltf',"base_panel01");
+  back_panel = loadModel('back_panel.gltf',"back_panel01")
+  front_panel = loadModel('front_panel.gltf',"front_panel01")
+  start_separator = loadModel('sepparator.gltf',"start_separator")
+  end_separator = loadModel('sepparator.gltf',"end_separator")
+  console.log(end_separator)
+  end_separator.position.x+=1
+  // separator = loadModel()
+  // generateRow()
+} 
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+function loadModel(path,name) { 
+  const loader = new GLTFLoader();
+  loader.load(path, (gltf) => {
+    model = gltf.scene;
+    model.name = name;
+    model.position.set(0, 0, 0);
+    model.scale.set(100, 100, 100);
+    
+
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.material.side = THREE.DoubleSide;
+        child.material.color.set(0x00ff00);
+
+        if (child.morphTargetDictionary) {
+          Object.keys(child.morphTargetDictionary).forEach((key) => {
+            console.log(`Shape Key: ${key}`);
+          });
+        }
+      }
+      updateShapeKey(model,"Width")
+      scene.add(model)  
+      
     });
-  
-  }
-    
-
+  })
+  return model
+}
 
  function animate() {
    requestAnimationFrame(animate);
    renderer.render(scene, camera);
- }
-
+}
 
  function setupScene() {
     // Create the scene
@@ -79,77 +102,19 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.update();
 
- }
-
-function loadModel(path) { 
-  const loader = new GLTFLoader();
-  loader.load(path, (gltf) => {
-    model = gltf.scene;
-    model.name = path;
-    model.position.set(0, 0, 0);
-    model.scale.set(100, 100, 100);
-    
-
-    model.traverse((child) => {
-      if (child.isMesh) {
-        console.log(child.name); // Mesh name
-        console.log(child.morphTargetDictionary); // Morph targets dictionary
-        
-        // Set the material to be double-sided and apply a color
-        child.material.side = THREE.DoubleSide; // Make material double-sided
-        child.material.color.set(0x00ff00); // Set the color to green (you can change this)
-
-        if (child.morphTargetDictionary) {
-          Object.keys(child.morphTargetDictionary).forEach((key) => {
-            console.log(`Shape Key: ${key}`);
-          });
-        }
-      }
-      scene.add(model)  
-    });
-
-
-
-
-  })
-}
-  
- 
-  
-
-
-
- function generateRow(model, count, spacing) {
-  const models = []; // Array to hold generated models
-  if (!model) {
-    console.error("Base model is not loaded yet.");
-    return models;
-  }
-
-  for (let i = 0; i < count; i++) {
-    const clone = model.clone(); // Clone the base model
-    clone.position.set(i * spacing, 0, 0); // Position the clone in a row
-    clone.name = `section_${i}`;
-    scene.add(clone); // Add to the scene
-    models.push(clone); // Add to the array
-  }
-
-  return models;
 }
 
-
-// Update the shape key influences based on user input
-const updateShapeKey = (name) => {
-  if (model) {
-    model.traverse((child) => {
+const updateShapeKey = (_model,name) => {
+  if (_model) {
+    _model.traverse((child) => {
       if (child.isMesh && child.morphTargetDictionary[name] !== undefined) {
         const index = child.morphTargetDictionary[name];
-
+        let morphValue
         // Handle shape key updates
         switch (name) {
           case "Width":
             console.log(name)
-            let morphValue = mapRange(total_width/vertical_separators, 0.1, 2, 0, 1);
+            morphValue = mapRange(total_width/vertical_separators, 0.1, 2, 0, 1);
             child.morphTargetInfluences[index] = morphValue;
             break;
 
@@ -180,25 +145,9 @@ const updateShapeKey = (name) => {
 
 </script>
 
-
-
 <div id="canvas-container"></div>
 
-<!-- Controls for adjusting shape key influences -->
 <div class="parametric-menu" >
-  Total Width
-  <input  bind:value={total_width} type="number"  min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Width')}  >
-  Vertical Sepparators
-  <input  bind:value={vertical_separators} type="number"  min="0"max="100" on:input={(e) => updateShapeKey('Width')}  >
-
-  Depth per row ( comma sepparated )
-  <input type="text" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Height')}  >
-  Depth per row ( comma sepparated )
-  <input type="number" min="0.1"max="2" step="0.01" on:input={(e) => updateShapeKey('Depth')}  >
-
-  <!-- <button on:click={generateStructure} > Generate Structure </button> -->
-
-  
 </div>
 
 <style>
@@ -210,30 +159,5 @@ const updateShapeKey = (name) => {
   #canvas-container {
     width: 100%;
     height: 100vh;
-  }
-
-  .controls {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 10px;
-    border-radius: 5px;
-  }
-
-  .controls label {
-    color: white;
-    display: block;
-    margin-bottom: 5px;
-  }
-
-  .controls input {
-    width: 100%;
-  }
-  .parametric-menu{
-    width: 100%;
-    position: absolute;
-    bottom: 10px;
   }
 </style>
