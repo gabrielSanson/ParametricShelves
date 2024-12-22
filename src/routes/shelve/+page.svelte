@@ -10,8 +10,8 @@
 
 
 
-  let total_width = 1
-  let vertical_separators = 1
+  let total_width = 0.5
+  let vertical_separators = 4
   let height_per_row = 1.0
   let depth_per_row= 1.0
 
@@ -40,21 +40,26 @@
 
 async function init() {
   await setupScene()
-  base_panel = await loadModel('base_panel.gltf',"base_panel01");
+  base_panel = await loadModel('base.gltf',"base_panel01");
   back_panel = await loadModel('back_panel.gltf',"back_panel01")
   front_panel = await loadModel('front_panel.gltf',"front_panel01")
-  start_separator = await loadModel('sepparator.gltf',"start_separator")
-  end_separator = await loadModel('sepparator.gltf',"end_separator")
-  end_separator.position.x+=9.8
-  base_panel.scale.x*=5
-  row = {
-    "base" : base_panel,
-    "back" : back_panel,
-    "front" : front_panel,
-    "start_separator" : start_separator,
-    "end_separator" : end_separator,
-  }
+  start_separator = await loadModel('separator.gltf',"start_separator")
+  end_separator = await loadModel('separator.gltf',"end_separator")
 
+
+  for (let i = 0; i < vertical_separators.length; i++)  {
+    let new_separator = await loadModel('separator.gltf',"start_separator");
+    new_separator.position.x += 10
+    separators.push(new_separator);
+    console.log(separators)
+    scene.add(new_separator)
+  }
+  end_separator.position.x+=total_width*100 - 0.2
+  base_panel.scale.x *= total_width*100 - 0.4
+  back_panel.scale.x*= total_width*100 - 0.4
+
+  front_panel.scale.x*= total_width*100 - 0.4
+  front_panel.position.z += 10
 
 }
 

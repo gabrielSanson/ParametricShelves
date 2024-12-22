@@ -15,12 +15,17 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"front_panel"
+			"name":"sepparator",
+			"translation":[
+				-0.0020000000949949026,
+				0,
+				0
+			]
 		}
 	],
 	"meshes":[
 		{
-			"name":"front_panel",
+			"name":"separator",
 			"primitives":[
 				{
 					"attributes":{
@@ -37,68 +42,68 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":24,
+			"count":98,
 			"max":[
-				0.009999997913837433,
-				0.04800000414252281,
-				-1.0943040251731873e-08
+				0.0020000000949949026,
+				0.10000000149011612,
+				0.09800000488758087
 			],
 			"min":[
-				-7.450580596923828e-09,
-				-5.3551048040390015e-09,
-				-0.0020000298973172903
+				-3.958120942115784e-09,
+				-7.2177499532699585e-09,
+				-7.2177499532699585e-09
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":24,
+			"count":98,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":24,
+			"count":98,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":36,
+			"count":252,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":288,
+			"byteLength":1176,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":288,
+			"byteLength":1176,
+			"byteOffset":1176,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":576,
+			"byteLength":784,
+			"byteOffset":2352,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":72,
-			"byteOffset":768,
+			"byteLength":504,
+			"byteOffset":3136,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":840,
-			"uri":"front_panel.bin"
+			"byteLength":3640,
+			"uri":"separator.bin"
 		}
 	]
 }
