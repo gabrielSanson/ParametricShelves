@@ -10,11 +10,12 @@
 
 
 
-  let total_width = 0.5
-  let vertical_separators = 4
-  let height_per_row = 1.0
-  let depth_per_row= 1.0
-
+  let total_width = 1.0
+  let vertical_separators = 4.0
+  let height_per_row = [10,20,30]
+  let depth_per_row= [30,20,10]
+  let rows = 3
+  let columns = 2
 
   
 
@@ -39,29 +40,70 @@
 
 
 async function init() {
-  await setupScene()
-  base_panel = await loadModel('base.gltf',"base_panel01");
-  back_panel = await loadModel('back_panel.gltf',"back_panel01")
-  front_panel = await loadModel('front_panel.gltf',"front_panel01")
-  start_separator = await loadModel('separator.gltf',"start_separator")
-  end_separator = await loadModel('separator.gltf',"end_separator")
+  await setupScene();
 
-
-  for (let i = 0; i < vertical_separators.length; i++)  {
-    let new_separator = await loadModel('separator.gltf',"start_separator");
-    new_separator.position.x += 10
-    separators.push(new_separator);
-    console.log(separators)
-    scene.add(new_separator)
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < columns; x++) {
+      const boxGroup = await generateBox(y, x); // Pass row and column to generateBox
+    }
   }
-  end_separator.position.x+=total_width*100 - 0.2
-  base_panel.scale.x *= total_width*100 - 0.4
-  back_panel.scale.x*= total_width*100 - 0.4
-
-  front_panel.scale.x*= total_width*100 - 0.4
-  front_panel.position.z += 10
-
 }
+
+
+async function generateBox(row,column) {
+  // Create the group at the beginning
+  const boxGroup = new THREE.Group();
+  console.log("column")
+  // Load models
+  const base_panel = await loadModel('base.gltf', "base_panel01");
+  const back_panel = await loadModel('back_panel.gltf', "back_panel01");
+  const front_panel = await loadModel('front_panel.gltf', "front_panel01");
+  // if (column == 0){
+  let start_separator 
+
+  const end_separator = await loadModel('separator.gltf', "end_separator");
+  if (column == 0){
+    start_separator = await loadModel('separator.gltf', "start_separator");
+  }
+  // Adjust positions and scales
+  const totalWidthScaled = total_width * 100 - 0.4;
+  end_separator.position.x += total_width*100/vertical_separators - 0.0;
+
+  base_panel.scale.x *= total_width*100/vertical_separators - 0.2;
+  back_panel.scale.x *= total_width*100/vertical_separators - 0.2;
+  back_panel.scale.y = height_per_row[row]*10
+  ///Depth
+  if (start_separator){
+    start_separator.scale.z =  depth_per_row[row]*10
+    start_separator.scale.y = height_per_row[row]*10
+  }
+  end_separator.scale.z =  depth_per_row[row]*10
+  end_separator.scale.y = height_per_row[row]*10
+
+  base_panel.scale.z = depth_per_row[row]*10
+  //// WHYYYYY ? >,< !!!
+  front_panel.position.z = depth_per_row[row]
+  front_panel.scale.y = height_per_row[row]*10
+  front_panel.scale.x *= total_width*100/vertical_separators - 0.2;
+  //front_panel.position.z += 10;
+
+  boxGroup.add(base_panel, back_panel, front_panel, start_separator, end_separator);
+
+  console.log(column)
+  let column_width = total_width*100/vertical_separators
+  let row_height = 10.0*100
+  
+  boxGroup.position.x = column_width*column
+  boxGroup.position.y = 10*row
+  scene.add(boxGroup);
+
+
+
+  console.log('Box group created:', boxGroup);
+  return boxGroup;
+}
+
+
 
 
 async function loadModel(path, name) {
@@ -82,11 +124,11 @@ async function loadModel(path, name) {
             child.material.side = THREE.DoubleSide;
             child.material.color.set(0x00ff00);
 
-            if (child.morphTargetDictionary) {
-              Object.keys(child.morphTargetDictionary).forEach((key) => {
-                // Do something with the shape keys if needed
-              });
-            }
+            // if (child.morphTargetDictionary) {
+            //   Object.keys(child.morphTargetDictionary).forEach((key) => {
+            //     // Do something with the shape keys if needed
+            //   });
+            // }
           }
         });
 
@@ -122,7 +164,7 @@ async function loadModel(path, name) {
     hdriLoader.load('/environment5.hdr', (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       scene.environment = texture;
-      scene.background = texture;
+      // scene.background = texture;
     });
     // Set up the camera
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -145,44 +187,44 @@ async function loadModel(path, name) {
 
 }
 
-const updateShapeKey = (model, name) => {
-  if (model) {
-    model.traverse((child) => {
-      if (child.isMesh && child.morphTargetDictionary && child.morphTargetDictionary[name] !== undefined) {
-        const index = child.morphTargetDictionary[name];
-        let morphValue;
+// const updateShapeKey = (model, name) => {
+//   if (model) {
+//     model.traverse((child) => {
+//       if (child.isMesh && child.morphTargetDictionary && child.morphTargetDictionary[name] !== undefined) {
+//         const index = child.morphTargetDictionary[name];
+//         let morphValue;
 
-        // Log to confirm morph target exists
-        console.log(`Morph target "${name}" found at index ${index}`);
+//         // Log to confirm morph target exists
+//         console.log(`Morph target "${name}" found at index ${index}`);
         
-        // Handle shape key updates based on the name
-        switch (name) {
-          case "Width":
-            console.log("Updating Width shape key");
-            morphValue = mapRange(total_width / vertical_separators, 0.1, 2, 0, 1);
-            child.morphTargetInfluences[index] = morphValue;
-            break;
+//         // Handle shape key updates based on the name
+//         switch (name) {
+//           case "Width":
+//             console.log("Updating Width shape key");
+//             morphValue = mapRange(total_width / vertical_separators, 0.1, 2, 0, 1);
+//             child.morphTargetInfluences[index] = morphValue;
+//             break;
 
-          case "Depth":
-            console.log("Updating Depth shape key");
-            morphValue = mapRange(total_width / vertical_separators, 0.1, 2, 0, 1);
-            child.morphTargetInfluences[index] = morphValue;
-            break;
+//           case "Depth":
+//             console.log("Updating Depth shape key");
+//             morphValue = mapRange(total_width / vertical_separators, 0.1, 2, 0, 1);
+//             child.morphTargetInfluences[index] = morphValue;
+//             break;
 
-          case "Height":
-            console.log("Updating Height shape key");
-            // Placeholder for "Height" logic, modify as needed
-            break;
+//           case "Height":
+//             console.log("Updating Height shape key");
+//             // Placeholder for "Height" logic, modify as needed
+//             break;
 
-          default:
-            console.warn(`Unsupported shape key: ${name}`);
-        }
-      }
-    });
-  } else {
-    console.warn("Model not found or doesn't have morph targets.");
-  }
-};
+//           default:
+//             console.warn(`Unsupported shape key: ${name}`);
+//         }
+//       }
+//     });
+//   } else {
+//     console.warn("Model not found or doesn't have morph targets.");
+//   }
+// };
 
 
 onMount(async () => {
@@ -204,7 +246,18 @@ onMount(async () => {
 
 <div id="canvas-container"></div>
 
-<div class="parametric-menu" >
+<div class="parametric_menu" >
+
+  <div class="setting">
+    <label> Width ( m ) </label>
+    <input type="number" >
+  </div>
+
+
+  <div class="setting">
+    <label> Depth/row</label>
+    <input type="text" >
+  </div>
 </div>
 
 <style>
@@ -216,5 +269,17 @@ onMount(async () => {
   #canvas-container {
     width: 100%;
     height: 100vh;
+  }
+  .parametric_menu {
+    background-color: white;
+    width: 512px;
+    height: 512px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+  .option{
+    display: flex;
+    flex-direction: row;
   }
 </style>
