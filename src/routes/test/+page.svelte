@@ -358,7 +358,7 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSide
               // base_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
               // back_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
               // front_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
-
+              
 
               box.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
           

@@ -11,13 +11,14 @@
 
 
   let total_width = 1.0
-  let vertical_separators = 4.0
-  let height_per_row = [10,20,30]
-  let depth_per_row= [30,20,10]
-  let rows = 3
-  let columns = 2
 
-  
+
+  let rows = 5
+  let height_per_row = [40,30,20,10]
+  let depth_per_row= [40,30,20,10]
+
+
+  let columns = 2
 
   let base_panel 
   let back_panel 
@@ -50,6 +51,16 @@ async function init() {
 }
 
 
+async function ongenerateStructure(params) {
+  clearScene(scene)
+  // setupScene()
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < columns; x++) {
+      const boxGroup = await generateBox(y, x); // Pass row and column to generateBox
+    }
+  }
+}
+
 async function generateBox(row,column) {
   // Create the group at the beginning
   const boxGroup = new THREE.Group();
@@ -67,10 +78,11 @@ async function generateBox(row,column) {
   }
   // Adjust positions and scales
   const totalWidthScaled = total_width * 100 - 0.4;
-  end_separator.position.x += total_width*100/vertical_separators - 0.0;
+  end_separator.position.x += total_width*100/columns - 0.0;
 
-  base_panel.scale.x *= total_width*100/vertical_separators - 0.2;
-  back_panel.scale.x *= total_width*100/vertical_separators - 0.2;
+
+  base_panel.scale.x *= total_width*100/columns - 0.2;
+  back_panel.scale.x *= total_width*100/columns - 0.2;
   back_panel.scale.y = height_per_row[row]*10
   ///Depth
   if (start_separator){
@@ -82,19 +94,39 @@ async function generateBox(row,column) {
 
   base_panel.scale.z = depth_per_row[row]*10
   //// WHYYYYY ? >,< !!!
-  front_panel.position.z = depth_per_row[row]
-  front_panel.scale.y = height_per_row[row]*10
-  front_panel.scale.x *= total_width*100/vertical_separators - 0.2;
-  //front_panel.position.z += 10;
+  front_panel.position.z = depth_per_row[row] - 0.2
+  front_panel.scale.x *= total_width*100/columns - 0.4;
+  // front_panel.scale.y = height_per_row[row]*10 - 2.5
+  front_panel.scale.y = (height_per_row[row]*5) - 5
 
-  boxGroup.add(base_panel, back_panel, front_panel, start_separator, end_separator);
+
+  if (start_separator){
+    boxGroup.add(base_panel, back_panel, front_panel, start_separator, end_separator);
+  }
+  else {
+    boxGroup.add(base_panel, back_panel, front_panel, end_separator);
+  }
 
   console.log(column)
-  let column_width = total_width*100/vertical_separators
+  let column_width = total_width*100/columns
   let row_height = 10.0*100
   
   boxGroup.position.x = column_width*column
-  boxGroup.position.y = 10*row
+
+  console.log("offseting Y by " ,height_per_row[row])
+  /// need to offset in Y by 
+  /// previous row height summed
+  /// instead of current row height
+  // Calculate cumulative height for all rows up to the current one
+  let cumulativeHeight = 0;
+  for (let i = 0; i < row; i++) {
+    cumulativeHeight += height_per_row[i];
+  }
+
+
+  boxGroup.position.y = cumulativeHeight
+  //  10*row + (0.2*row)
+  boxGroup.position.z = 0
   scene.add(boxGroup);
 
 
@@ -122,13 +154,14 @@ async function loadModel(path, name) {
         model.traverse((child) => {
           if (child.isMesh) {
             child.material.side = THREE.DoubleSide;
-            child.material.color.set(0x00ff00);
 
-            // if (child.morphTargetDictionary) {
-            //   Object.keys(child.morphTargetDictionary).forEach((key) => {
-            //     // Do something with the shape keys if needed
-            //   });
-            // }
+            // Generate a random color
+            const randomColor = new THREE.Color(
+              Math.random(),
+              Math.random(),
+              Math.random()
+            );
+            child.material.color = randomColor;
           }
         });
 
@@ -149,6 +182,7 @@ async function loadModel(path, name) {
   console.log("Model is:", model);
   return model;
 }
+
 
  function animate() {
    requestAnimationFrame(animate);
@@ -185,6 +219,29 @@ async function loadModel(path, name) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.update();
 
+}
+
+function clearScene(scene) {
+    while (scene.children.length > 0) {
+        const child = scene.children[0];
+
+        // Recursively dispose of child resources if necessary
+        if (child.geometry) {
+            child.geometry.dispose();
+        }
+        if (child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.dispose());
+            } else {
+                child.material.dispose();
+            }
+        }
+        if (child.texture) {
+            child.texture.dispose();
+        }
+
+        scene.remove(child);
+    }
 }
 
 // const updateShapeKey = (model, name) => {
@@ -249,15 +306,27 @@ onMount(async () => {
 <div class="parametric_menu" >
 
   <div class="setting">
-    <label> Width ( m ) </label>
-    <input type="number" >
+    <label> Total Width </label>
+    <input  bind:value={total_width} type="number" >
   </div>
-
 
   <div class="setting">
     <label> Depth/row</label>
-    <input type="text" >
+    <input bind:value={depth_per_row} type="text" >
   </div>
+
+  <div class="setting">
+    <label> Height/Row </label>
+    <input  bind:value={height_per_row} type="text" >
+  </div>
+
+  <div class="setting">
+    <label> Columns </label>
+    <input  bind:value={columns} type="text" >
+  </div>
+
+  <button onclick={ongenerateStructure} >Generate Structure </button> 
+
 </div>
 
 <style>
