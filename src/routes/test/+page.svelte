@@ -16,23 +16,38 @@
   let height_per_row = 1.0
   let depth_per_row= 1.0
 
+  
   let totalWidth = $page.url.searchParams.get("totalWidth") || "250"
 
   let horizontalBars = $page.url.searchParams.get("horizontalBars") || "3"
   let verticalBars = $page.url.searchParams.get("verticalBars") || "2"
   // let depthBars = $page.url.searchParams.get("depthBars") || "5"
-  let depthPerRow = $page.url.searchParams.get("depthPerRow") || "60,50,40,30,20"
+  let depthPerRow = $page.url.searchParams.get("depthPerRow") || "100,70,40,30"
   let heightsPerRow = $page.url.searchParams.get("heightsPerRow") || "60,50,40,30,20"
   let doubleSided =  $page.url.searchParams.get("doubleSided") || false
+  let isCurved =  $page.url.searchParams.get("isCurved") || true
+  let frontPanelHeight=$page.url.searchParams.get("frontPanelHeight") || "10"
+  let hasFront =  $page.url.searchParams.get("hasFront") || true
+  let curveParam =  $page.url.searchParams.get("curveParam") || "5"
 
+  let glassThickness =  $page.url.searchParams.get("glassThickness") || 0.25
+  let gap =  $page.url.searchParams.get("gap") || 0.5
+
+  let options = [
+    { label: "Fundo Branco", value: "" },
+    { label: "Fundo #1", value: "environment5.hdr" },
+    { label: "Fundo #2", value: "environment.hdr" }
+  ];
+
+  let selectedOption = options[1].value; // Default selected value
 
   let dividers = [];
   let circles = [];
   let markerIndex = 1;
   let showCircles = true;
+  // let isCurved = true;
 
-  const glassThickness = 0.25;  // Glass thickness
-  const gap = 4;  // Space between sctructures
+
   const sharedMaterial = new THREE.MeshPhysicalMaterial({
         metalness: 0.1,
         roughness: 0.75,
@@ -56,7 +71,7 @@
 
   function mapRange(value, inMin, inMax, outMin, outMax) {
     return outMin + ((value - inMin) * (outMax - outMin)) / (inMax - inMin);  
-}
+  }
 
   let row = {
     "base" : base_panel,
@@ -70,21 +85,21 @@
 async function init() {
   await setupScene()
   
-  const myArc=arc(10,4,10,2)
-  base_panel = await loadModel('base.gltf',"base_panel01");
-  back_panel = await loadModel('back_panel.gltf',"back_panel01")
-  front_panel = await loadModel('front_panel.gltf',"front_panel01")
-  start_separator = myArc.clone()
-  end_separator = myArc.clone()
-  end_separator.position.x+=10
-  base_panel.scale.x*=20
-  row = {
-    "base" : base_panel,
-    "back" : back_panel,
-    "front" : front_panel,
-    "start_separator" : start_separator,
-    "end_separator" : end_separator,
-  }
+  // const myArc=arc(10,4,10,2)
+  // base_panel = await loadModel('base.gltf',"base_panel01");
+  // back_panel = await loadModel('back_panel.gltf',"back_panel01")
+  // front_panel = await loadModel('front_panel.gltf',"front_panel01")
+  // start_separator = myArc.clone()
+  // end_separator = myArc.clone()
+  // end_separator.position.x+=10
+  // base_panel.scale.x*=20
+  // row = {
+  //   "base" : base_panel,
+  //   "back" : back_panel,
+  //   "front" : front_panel,
+  //   "start_separator" : start_separator,
+  //   "end_separator" : end_separator,
+  // }
 }
 
 
@@ -138,15 +153,17 @@ async function loadModel(path, name) {
     scene = new THREE.Scene();
 
     // Load the HDRI environment texture
-    const hdriLoader = new RGBELoader();
-    hdriLoader.load('/environment5.hdr', (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      scene.environment = texture;
-      scene.background = texture;
-    });
+    if ((selectedOption!=="")) {
+      const hdriLoader = new RGBELoader();
+      hdriLoader.load(`${selectedOption}`, (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = texture;
+        scene.background = texture;
+      });
+    }
     // Set up the camera
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(-50, 10, 120);
+    camera.position.set(-500, 10, -120);
     // Set up the renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -219,11 +236,17 @@ const arc = (widthBottom, widthTop, height, frontHeight) => {
   shape.lineTo(widthBottom, frontHeight); // face panel top
   // TODO replace next line with a bezier curve 
   // shape.lineTo(widthTop, height); // Top-left corner
-  shape.bezierCurveTo(
-    widthBottom-5, frontHeight + (height - frontHeight) / 10, // Control point 1 (upward from the bottom-right corner)
-    widthTop, height - (height - frontHeight) / 3,        // Control point 2 (downward from the top-right corner)
-    widthTop, height                                      // End point (top-right corner)
-  );
+  console.log(`curveParam ${curveParam}`)
+  if (isCurved) {
+      shape.bezierCurveTo(
+      widthTop, (height - frontHeight) / curveParam, // Control point 1 (upward from the bottom-right corner)
+      widthTop, height - (height - frontHeight) / curveParam,        // Control point 2 (downward from the top-right corner)
+      widthTop, height                                      // End point (top-right corner)
+    );
+  } else {
+    shape.lineTo(widthTop, height); // Top-left corner
+  }
+  
   shape.lineTo(0, height); // Top-left corner
   shape.lineTo(0, 0); // Close the shape
 
@@ -244,6 +267,39 @@ const arc = (widthBottom, widthTop, height, frontHeight) => {
   // return mesh
 }
 
+const rectangle = (x, y, z) => {
+  // Create a shape
+  const shape = new THREE.Shape();
+  // const widthBottom = 10; // Bottom edge length
+  // const widthTop = top; // Top edge length
+  // const frontHeight = 3; // front panel height
+  // const height = 10; // Height of the trapezoid
+  // const arcRadius = 1.5; // Radius of the curved edge
+
+  // Define the vertices and use an arc for the angled edge
+  shape.moveTo(0, 0); // Bottom-left corner
+  shape.lineTo(x, 0); // Bottom-right corner
+  shape.lineTo(x, y); // face panel top
+  shape.lineTo(0, y); // Top-left corner
+  shape.lineTo(0, 0); // Close the shape
+
+  // Create a geometry from the shape
+  const geometry = new THREE.ShapeGeometry(shape);
+
+  // Create a mesh
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geometry, material);
+
+  const extrudeSettings = { depth: z, bevelEnabled: false };
+  const extrudeGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  const extrudeMesh = new THREE.Mesh(extrudeGeometry, material);
+  // Rotate the shape along the Y-axis
+  // extrudeMesh.rotation.y = -Math.PI / 2; // 90 degrees in radians
+  // scene.add(extrudeMesh);
+  return extrudeMesh
+  // return mesh
+}
+
 
 function initGeometries(base,back,front,frontHeight,sep) {
   // end_separator.position.x+=9.8
@@ -257,47 +313,84 @@ function initGeometries(base,back,front,frontHeight,sep) {
   start_separator.scale.y*=sep
 }
 
+
+const getColor = () => {
+  return (Math.random() * 0x770000)
+}
+
 function boxGroup(backPanel, closingSeparator) {
   const group = new THREE.Group();
   
-  group.add(base_panel);
   group.add(front_panel);
   if (backPanel) {
     group.add(back_panel);
   }
-  group.add(start_separator);
+  // group.add(start_separator);
   if (closingSeparator) {
     group.add(end_separator);
   }
   return group
 }
 
-// function boxGroup2(columnWidth, dividerHeight, rowDepth, backPanel, closingSeparator) {
-//   const group = new THREE.Group();
+function boxGroup2(columnWidth, dividerHeight, rowDepth, rowTopDepth, frontPanelHeight, backPanel, topPanel, closingSeparator) {
+  const group = new THREE.Group();
+  // const fact=1;
+
+  console.log(`columnWidth: ${columnWidth} `)
+  console.log(`dividerHeight: ${dividerHeight} `)
+  console.log(`rowDepth: ${rowDepth} `)
+
+  const basep=rectangle(1,1,glassThickness)
+  // let basep=base_panel.clone()
+  basep.scale.set(columnWidth, rowDepth, 1)
+  basep.rotation.x = -Math.PI / 2;
+  basep.material.color.set(getColor());
+  group.add(basep);
+
+  if (hasFront) {
+    let frontp=rectangle(1,1,glassThickness)
   
-//   let basep=base_panel.clone()
-//   basep.scale.set(columnWidth, dividerHeight, rowDepth)
-//   group.add(basep);
+    frontp.scale.set(columnWidth, frontPanelHeight, 1)
+    frontp.position.set(0, 0, -rowDepth);
+    frontp.material.color.set(getColor());
+    // frontp.rotation.x = -Math.PI / 2;
+    // frontp.scale.set(columnWidth, dividerHeight, rowDepth)
+    group.add(frontp);
+  }
 
-//   let frontp=front_panel.clone()
-//   frontp.scale.set(columnWidth, dividerHeight, rowDepth)
-//   group.add(frontp);
 
-//   if (backPanel) {
-//     const backp=back_panel.clone()
-//     backp.scale.set(columnWidth, dividerHeight, rowDepth)
-//     group.add(backp);
-//   }
-//   // group.add(start_separator);
-//   // if (closingSeparator) {
-//   //   group.add(end_separator);
-//   // }
-//   return group
-// }
+  if (backPanel) {
+    let backp=rectangle(1,1,glassThickness)
+    backp.scale.set(columnWidth, dividerHeight, 1)
+    backp.material.color.set(getColor());
+    group.add(backp);
+  }
 
-function generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSided) {
+  if (topPanel) {
+    let topp=rectangle(1,1,glassThickness)
+    topp.scale.set(columnWidth, rowTopDepth, 1)
+    topp.position.set(0, dividerHeight, 0);
+    topp.material.color.set(getColor());
+    topp.rotation.x = -Math.PI / 2;
+    group.add(topp);
+  }
+  
+
+  const arcSeparator=arc(-rowDepth,-rowTopDepth,dividerHeight,frontPanelHeight)
+  arcSeparator.material.color.set(getColor());
+  group.add(arcSeparator);
+  if (closingSeparator) {
+    const endSeparator=arcSeparator.clone()
+    endSeparator.position.set(columnWidth, 0, 0);
+    endSeparator.material.color.set(getColor());
+    group.add(endSeparator);
+  }
+  return group
+}
+
+function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided) {
       clearStructure();
-      initGeometries(0.5,10,10,0.4,1)
+      // initGeometries(0.5,10,10,0.4,1)
       markerIndex = 1;
 
       const shelfWidth = totalWidth;  // Use the total width here
@@ -308,16 +401,20 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSide
       const columnWidth = (shelfWidth - (glassThickness * (vBars + 1))) / vBars;
 
       // Create vertical dividers
+      let rowTopDepth
+      const groupOpposite = new THREE.Group();
       for (let i = 0; i < vBars; i++) {
+          console.log(`column ${i}`)
           let currentHeightOffset = 0;
-
+          
           for (let row = 0; row < hBars; row++) {
               const dividerHeight = heights[row];
-
+              console.log(`row ${row}`)
               //Factors
-              const rowFactor=2;
+              const rowFactor=1;
               const rowDepth = (depths[row] || depths[depths.length - 1]) * rowFactor;
-
+              rowTopDepth=(depths[row+1] || (depths[row]))
+              console.log(`rowDepth ${rowDepth} / rowTopDepth ${rowTopDepth}`)
               const geometry = new THREE.BoxGeometry(
                   glassThickness,
                   dividerHeight,
@@ -328,28 +425,28 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSide
               const verticalDivider = new THREE.Mesh(geometry, sharedMaterial);
 
               verticalDivider.position.set(
-                  i * (columnWidth + glassThickness) - (shelfWidth / 2),
+                  i * (columnWidth) - (shelfWidth / 2),
                   currentHeightOffset - verticalCenterOffset + dividerHeight / 2,
                   -rowDepth / 2
               );
 
               // scene.add(verticalDivider);
-              const isFirstColumn = (i == (0))
-              let box=boxGroup(true, isFirstColumn).clone()
+              const isFirstColumn = (i == (vBars-1))
+              const isTopShelf = (row == (hBars-1))
+              // let box=boxGroup(true, isFirstColumn).clone()
 
-              // let box=boxGroup2(columnWidth, dividerHeight, rowDepth, true, isFirstColumn).clone()
+              console.log(`isFirstColumn: ${isFirstColumn}`)
+              let box=boxGroup2(columnWidth, dividerHeight, rowDepth, (rowTopDepth || (rowDepth/2)), frontPanelHeight, true, isTopShelf, isFirstColumn).clone()
 
-              
-             
               //let bp=base_panel.clone();
               // const boxX=i * (columnWidth + glassThickness) - (shelfWidth / 1)
               console.log(columnWidth)
               console.log(shelfWidth)
-              const boxX=i * (columnWidth-shelfWidth) //+ (i*gap)
+              const boxX=(i * (columnWidth) - (shelfWidth / 2)) //+ (i*gap)
               const boxY=currentHeightOffset + (i*gap)
               console.log(`currentHeightOffset=${currentHeightOffset}`)
               console.log(`dividerHeight=${dividerHeight}`)
-              const factor = 1/10
+              // const factor = 1/10
               box.position.set(
                   boxX,
                   currentHeightOffset / 1,
@@ -360,22 +457,32 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSide
               // front_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
               
 
-              box.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
+              // box.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
           
               
               if (doubleSided) {
-                let boxOpposite=boxGroup(false, isFirstColumn).clone()
+                let boxOpposite=boxGroup2(columnWidth, dividerHeight, rowDepth, (rowTopDepth || (rowDepth/2)), frontPanelHeight, false, isTopShelf, isFirstColumn).clone()
                 boxOpposite.position.set(
                     boxX,
                     currentHeightOffset / 1,
-                    gap
+                    0
                 );
-                boxOpposite.scale.set(columnWidth*factor, dividerHeight*factor, rowDepth*factor);
-                scene.add(boxOpposite)
+                // boxOpposite.rotation.y = -Math.PI / 4;
+                // boxOpposite.scale.set(columnWidth*factor, dividerHeight*factor, rowDepth*factor);
+                groupOpposite.add(boxOpposite)
                 
               }
-              currentHeightOffset += dividerHeight + glassThickness + gap;
+              currentHeightOffset += dividerHeight + gap;
               scene.add(box);
+          }
+          if (doubleSided) {
+            groupOpposite.rotation.y = -Math.PI;
+            groupOpposite.position.set(
+                    0,
+                    0,
+                    gap
+                );
+            scene.add(groupOpposite)
           }
       }
 
@@ -418,6 +525,7 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSide
           }
       }
   }
+
 
 // Function to draw circles with numbers
 function drawCircleWithNumber(xIndex, yIndex, hBars, vBars, heights, glassThickness, shelfWidth) {
@@ -471,7 +579,13 @@ function clearStructure() {
     }
 }
 
-function onGenerateStructure() {
+async function onGenerateStructure() {
+  try {
+    await init();
+    animate();
+  } catch (err) {
+    const error = err.message;
+  }
     const vBars = parseInt(document.getElementById('verticalBars').value);
     const hBars = parseInt(document.getElementById('horizontalBars').value);
     const dBars = parseInt(document.getElementById('depthBars').value);
@@ -481,23 +595,23 @@ function onGenerateStructure() {
     const doubleSided = document.getElementById('doubleSided').checked; // Get the value of the double sided checkbox
     totalWidth = parseFloat(document.getElementById('totalWidth').value);  // Get the total width value
 
-    generateShelfStructure(vBars, hBars, dBars, heights, depths, doubleSided);
+    generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided);
 }
 
 
 onMount(async () => {
-  try {
-    await init();
-    animate();
-  } catch (err) {
-    const error = err.message;
-  }
+  // try {
+  //   await init();
+  //   animate();
+  // } catch (err) {
+  //   const error = err.message;
+  // }
 
 
-  for (_model of separators){
-    updateShapeKey(_model,"Width")
-    print("updating")
-  }
+  // for (_model of separators){
+  //   updateShapeKey(_model,"Width")
+  //   print("updating")
+  // }
 });
 
 </script>
@@ -509,32 +623,67 @@ onMount(async () => {
 
 <div class="parametric-settings" >
 
+
+
   <h3 style="height: 48px; width: 100%;text-align:start;display:flex; justify-content:start;align-items:center">Estante de Vidro : </h3>
+  
+  <div style="margin-bottom: 10px" >
+    <select bind:value={selectedOption}>
+      {#each options as { label, value }}
+        <option value={value}>{label}</option>
+      {/each}
+    </select>
+  </div>
+
   <div class="option" >
     <label for="totalWidth">Largura Total (cm)</label>
-    <input type="number" id="totalWidth" bind:value={totalWidth} step="10">
+    <input class="text-input-sm" type="number" id="totalWidth" bind:value={totalWidth} step="10">
   </div>
   
   <div class="option">
     <label for="horizontalBars">Linhas</label>
-    <input type="number" id="horizontalBars" bind:value={horizontalBars} min="1">
+    <input class="text-input-sm"  type="number" id="horizontalBars" bind:value={horizontalBars} min="1">
   </div>
   <div class="option">
     <label for="verticalBars">Colunas</label>
-    <input type="number" id="verticalBars" bind:value={verticalBars} min="1">
+    <input class="text-input-sm"  type="number" id="verticalBars" bind:value={verticalBars} min="1">
   </div>
   <div class="option" style="display:none;">
     <label for="depthBars">Profundidade</label>
-    <input type="number" id="depthBars" value=1 min="1">
+    <input class="text-input"  type="number" id="depthBars" value=1 min="1">
   </div>
     <div class="option">
       <label  for="depthPerRow">Profundidade por Linha (cm)</label>
-      <input type="text" id="depthPerRow" bind:value={depthPerRow}>
+      <input class="text-input"  type="text" id="depthPerRow" bind:value={depthPerRow}>
     </div>
     <div class="option">
       <label for="heightsPerRow">Alturas por Linha (cm)</label>
-      <input type="text" id="heightsPerRow" bind:value={heightsPerRow}>
+      <input class="text-input"  type="text" id="heightsPerRow" bind:value={heightsPerRow}>
     </div>
+    <div class="option">
+      <label for="frontPanelHeight">Aparador frontal ? (cm)</label>
+      <input class="form-check-input" type="checkbox" id="hasFront"  bind:checked={hasFront}>
+      <input class="text-input-sm"  type="text" id="frontPanelHeight" bind:value={frontPanelHeight}>
+    </div>
+
+    <div class="option">
+      <label class="form-check-label" for="doubleSided">Curvatura</label>
+  
+      <input class="form-check-input" type="checkbox" id="isCurved"  bind:checked={isCurved}>
+      <input class="text-input-sm"  type="number" id="curveParam" bind:value={curveParam}>
+    </div>
+
+  <div class="option">
+    <label class="form-check-label" for="gap">Gap</label>
+
+    <input class="text-input-sm"  type="number" id="gap" bind:value={gap}>
+  </div>
+
+  <div class="option">
+    <label class="form-check-label" for="glassThickness">Espessura Vidro</label>
+
+    <input class="text-input-sm"  type="number" id="glassThickness" bind:value={glassThickness}>
+  </div>
  
   <div class="option">
     <label class="form-check-label" for="showCircles">Mostrar Círculos</label>
@@ -545,7 +694,7 @@ onMount(async () => {
   <div class="option">
     <label class="form-check-label" for="doubleSided">Estrutura Dupla</label>
 
-    <input class="form-check-input" type="checkbox" id="doubleSided"  bind:checked={doubleSided}>
+    <input class="form-check-input input-div" type="checkbox" id="doubleSided"  bind:checked={doubleSided}>
   </div>
   
   
@@ -555,27 +704,64 @@ onMount(async () => {
 </div>
 
 <style>
-  body {
+  .parametric-settings{
+    position: fixed;
+    border-color: black;
+    background-color: rgb(230,230,230);
+    display: flex;
+    flex-direction: column;
+    bottom: 16px;
+    left: 16px;
+    padding: 32px;
+    width: 300px;
+    padding: 0px 16px 16px 16px;
+    gap: 6px
+  }
+  body{
     margin: 0;
     padding: 0;
   }
-
-  #canvas-container {
+  *{
+    font-family: "Helvetica";
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  canvas-container {
+    display: block;
+    
+    background-color: aqua;
+  }
+  .option{
+    display: flex;
+    flex-direction: row;
     width: 100%;
-    height: 100vh;
+    /* background-color: red; */
+  }
+  label{
+    width: 100%;
+  }
+  input{
+    width: 100%;
+    height: 24px;
+  }
+  a{
+    visibility:hidden
+  }
+  .text-input-md {
+    width: 70px;
+    /* height: 100vh; */
   }
 
-  .parametric-settings{
-      position: fixed;
-      border-color: black;
-      background-color: rgb(230,230,230);
-      display: flex;
-      flex-direction: column;
-      bottom: 16px;
-      left: 16px;
-      padding: 32px;
-      width: 300px;
-      padding: 0px 16px 16px 16px;
-      gap: 6px
-    }
+  .text-input-sm {
+    width: 50px;
+    /* height: 100vh; */
+  }
+
+
 </style>
+
+
+
+
+
