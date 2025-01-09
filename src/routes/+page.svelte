@@ -48,7 +48,7 @@
   // let isCurved = true;
 
 
-  const sharedMaterial = new THREE.MeshPhysicalMaterial({
+  const xsharedMaterial = new THREE.MeshPhysicalMaterial({
         metalness: 0.1,
         roughness: 0.75,
         envMapIntensity: 0.1,
@@ -57,6 +57,18 @@
         transmission: 0,
         opacity: 0.5,
         reflectivity: 1,
+  });
+
+  const sharedMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0xeeffee, // Green base color
+    roughness: 0,    // Smooth surface for a glass-like appearance
+    metalness: 0,    // Non-metallic material
+    transmission: 1, // Fully transparent
+    opacity: 0.8,      // Ensures full transparency when combined with transmission
+    ior: 1.5,        // Index of refraction (glass-like)
+    thickness: 1,    // Simulates the thickness of the glass
+    clearcoat: 0.5,    // Adds a reflective layer on top
+    clearcoatRoughness: 0.5, // Smooth clearcoat layer
   });
 
   let base_panel 
