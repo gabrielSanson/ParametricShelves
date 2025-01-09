@@ -63,11 +63,11 @@
     color: 0xeeffee, // Green base color
     roughness: 0,    // Smooth surface for a glass-like appearance
     metalness: 0,    // Non-metallic material
-    transmission: 1, // Fully transparent
-    opacity: 0.8,      // Ensures full transparency when combined with transmission
+    transmission: 0.9, // Fully transparent
+    opacity: 0.6,      // Ensures full transparency when combined with transmission
     ior: 1.5,        // Index of refraction (glass-like)
     thickness: 1,    // Simulates the thickness of the glass
-    clearcoat: 0.5,    // Adds a reflective layer on top
+    clearcoat: 0.2,    // Adds a reflective layer on top
     clearcoatRoughness: 0.5, // Smooth clearcoat layer
   });
 
