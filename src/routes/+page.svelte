@@ -39,7 +39,7 @@
     { label: "Fundo #2", value: "environment.hdr" }
   ];
 
-  let selectedOption = options[1].value; // Default selected value
+  let selectedOption = options[0].value; // Default selected value
 
   let dividers = [];
   let circles = [];
@@ -64,10 +64,10 @@
     roughness: 0,    // Smooth surface for a glass-like appearance
     metalness: 0,    // Non-metallic material
     transmission: 0.9, // Fully transparent
-    opacity: 0.6,      // Ensures full transparency when combined with transmission
+    opacity: 0.8,      // Ensures full transparency when combined with transmission
     ior: 1.5,        // Index of refraction (glass-like)
     thickness: 1,    // Simulates the thickness of the glass
-    clearcoat: 0.2,    // Adds a reflective layer on top
+    clearcoat: 0.5,    // Adds a reflective layer on top
     clearcoatRoughness: 0.5, // Smooth clearcoat layer
   });
 
@@ -155,7 +155,27 @@ async function loadModel(path, name) {
         scene.environment = texture;
         scene.background = texture;
       });
-    }
+    } else {
+      const cubeTextureLoader = new THREE.CubeTextureLoader();
+      const environmentMap = cubeTextureLoader.load([
+        'https://threejs.org/examples/textures/cube/skybox/px.jpg', // Positive X
+        'https://threejs.org/examples/textures/cube/skybox/nx.jpg', // Negative X
+        'https://threejs.org/examples/textures/cube/skybox/py.jpg', // Positive Y
+        'https://threejs.org/examples/textures/cube/skybox/ny.jpg', // Negative Y
+        'https://threejs.org/examples/textures/cube/skybox/pz.jpg', // Positive Z
+        'https://threejs.org/examples/textures/cube/skybox/nz.jpg', // Negative Z
+      ]);
+      scene.environment = environmentMap;
+      scene.background = new THREE.Color(0xffffff);
+    } 
+    // else {
+    //   const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+    //   const planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White material
+    //   const backgroundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+    //   backgroundPlane.position.z = 500; // Position it behind the glass object
+    //   // scene.add(backgroundPlane);
+    //   scene.background = new THREE.Color(0xffffff);
+    // }
     // Set up the camera
     if (isInitial) {
       camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
