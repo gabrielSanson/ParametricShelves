@@ -59,6 +59,7 @@
         reflectivity: 1,
   });
 
+  /*
   const sharedMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xeeffee, // Green base color
     roughness: 0,    // Smooth surface for a glass-like appearance
@@ -69,6 +70,18 @@
     thickness: 1,    // Simulates the thickness of the glass
     clearcoat: 0.5,    // Adds a reflective layer on top
     clearcoatRoughness: 0.5, // Smooth clearcoat layer
+  });
+  */
+
+  const sharedMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x88c0d0,
+      metalness: 0.2,
+      roughness: 0.1,
+      opacity: 0.3,
+      ior: 1.5,
+      transmission: 0.9,
+      transparent: true,
+      reflectivity: 0.9
   });
 
   let base_panel 
@@ -184,9 +197,16 @@ async function loadModel(path, name) {
     }
 
     // Set up the renderer
+    // renderer = new THREE.WebGLRenderer({ antialias: true });
+    // renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // renderer.toneMappingExposure = 1;
+
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1;
+    renderer.toneMapping = THREE.NeutralToneMapping;
+    renderer.toneMappingExposure = 0.2;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById('canvas-container').appendChild(renderer.domElement);
     // Add lighting
@@ -194,6 +214,7 @@ async function loadModel(path, name) {
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.set(10, 10, 10).normalize();
+    directionalLight.castShadow = true;
     scene.add(directionalLight);
     // Add orbit controls
     const controls = new OrbitControls(camera, renderer.domElement);
