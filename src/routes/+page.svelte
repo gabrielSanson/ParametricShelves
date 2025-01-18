@@ -5,11 +5,16 @@
 
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
+  import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+  import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+
 
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-    import { base } from '$app/paths';
+  import { base } from '$app/paths';
 
 
+  const fontLoader = new FontLoader();
+  let font
 
   let total_width = 1
   let vertical_separators = 1
@@ -29,9 +34,15 @@
   let frontPanelHeight=$page.url.searchParams.get("frontPanelHeight") || "10"
   let hasFront =  $page.url.searchParams.get("hasFront") || true
   let curveParam =  $page.url.searchParams.get("curveParam") || "5"
+  let isShowConnectors =  $page.url.searchParams.get("isShowConnectors") || true
+  let isShowLabels =  $page.url.searchParams.get("isShowLabels") || false
+  let labelsParam =  $page.url.searchParams.get("labelsParam") || "* 0 part, * 1 another, 0 1 xyz TR"
 
   let glassThickness =  $page.url.searchParams.get("glassThickness") || 0.25
   let gap =  $page.url.searchParams.get("gap") || 0.5
+
+  let fontSize = $page.url.searchParams.get("fontSize") || 2
+  let fontColor = $page.url.searchParams.get("fontColor") || "0x000000"
 
   let options = [
     { label: "Fundo Branco", value: "" },
@@ -44,8 +55,6 @@
   let dividers = [];
   let circles = [];
   let markerIndex = 1;
-  let showCircles = true;
-  // let isCurved = true;
 
 
   const xsharedMaterial = new THREE.MeshPhysicalMaterial({
@@ -84,6 +93,18 @@
       reflectivity: 0.9
   });
 
+  const plateMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transparent: false,
+      reflectivity: 0.5
+  });
+
+  const labelMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xff0000,
+      transparent: false,
+      reflectivity: 0.5
+  });
+
   let base_panel 
   let back_panel 
   let front_panel
@@ -91,7 +112,6 @@
   let end_separator
   let separators = []
   let scene, camera, renderer, model;
-  let isScaled = false
 
 
   function mapRange(value, inMin, inMax, outMin, outMax) {
@@ -106,8 +126,22 @@
     "end_separator" : end_separator,
   }
 
+// Function to load the font using FontLoader
+async function loadFont(url) {
+    return new Promise((resolve, reject) => {
+        const fontLoader = new FontLoader();
+        fontLoader.load(
+            url,
+            (font) => resolve(font),
+            undefined,
+            (error) => reject(error)
+        );
+    });
+}
+
 
 async function init(isInitial) {
+  font = await loadFont('/fonts/helvetiker_regular.typeface.json');
   await setupScene(isInitial)
 }
 
@@ -170,15 +204,15 @@ async function loadModel(path, name) {
       });
     } else {
       const cubeTextureLoader = new THREE.CubeTextureLoader();
-      const environmentMap = cubeTextureLoader.load([
-        'https://threejs.org/examples/textures/cube/skybox/px.jpg', // Positive X
-        'https://threejs.org/examples/textures/cube/skybox/nx.jpg', // Negative X
-        'https://threejs.org/examples/textures/cube/skybox/py.jpg', // Positive Y
-        'https://threejs.org/examples/textures/cube/skybox/ny.jpg', // Negative Y
-        'https://threejs.org/examples/textures/cube/skybox/pz.jpg', // Positive Z
-        'https://threejs.org/examples/textures/cube/skybox/nz.jpg', // Negative Z
-      ]);
-      scene.environment = environmentMap;
+      // const environmentMap = cubeTextureLoader.load([
+      //   'https://threejs.org/examples/textures/cube/skybox/px.jpg', // Positive X
+      //   'https://threejs.org/examples/textures/cube/skybox/nx.jpg', // Negative X
+      //   'https://threejs.org/examples/textures/cube/skybox/py.jpg', // Positive Y
+      //   'https://threejs.org/examples/textures/cube/skybox/ny.jpg', // Negative Y
+      //   'https://threejs.org/examples/textures/cube/skybox/pz.jpg', // Positive Z
+      //   'https://threejs.org/examples/textures/cube/skybox/nz.jpg', // Negative Z
+      // ]);
+      // scene.environment = environmentMap;
       scene.background = new THREE.Color(0xffffff);
     } 
     // else {
@@ -312,7 +346,7 @@ const arc = (widthBottom, widthTop, height, frontHeight) => {
   // return mesh
 }
 
-const rectangle = (x, y, z) => {
+const rectangle = (x, y, z, material) => {
   // Create a shape
   const shape = new THREE.Shape();
   // const widthBottom = 10; // Bottom edge length
@@ -333,11 +367,11 @@ const rectangle = (x, y, z) => {
 
   // Create a mesh
   // const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(geometry, sharedMaterial);
+  // const mesh = new THREE.Mesh(geometry, material);
 
   const extrudeSettings = { depth: z, bevelEnabled: false };
   const extrudeGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-  const extrudeMesh = new THREE.Mesh(extrudeGeometry, sharedMaterial);
+  const extrudeMesh = new THREE.Mesh(extrudeGeometry, material);
   // Rotate the shape along the Y-axis
   // extrudeMesh.rotation.y = -Math.PI / 2; // 90 degrees in radians
   // scene.add(extrudeMesh);
@@ -358,19 +392,19 @@ function boxGroup2(columnWidth, dividerHeight, rowDepth, rowTopDepth, frontPanel
   console.log(`dividerHeight: ${dividerHeight} `)
   console.log(`rowDepth: ${rowDepth} `)
 
-  const basep=rectangle(1,1,glassThickness)
+  const basep=rectangle(1,1,glassThickness, sharedMaterial)
   // let basep=base_panel.clone()
-  basep.scale.set(columnWidth, rowDepth, 1)
+  basep.scale.set(columnWidth, -rowDepth, 1)
   basep.rotation.x = -Math.PI / 2;
 
   if (useColors) basep.material.color.set(getColor());
   group.add(basep);
 
   if (hasFront) {
-    let frontp=rectangle(1,1,glassThickness)
+    let frontp=rectangle(1,1,glassThickness, sharedMaterial)
   
     frontp.scale.set(columnWidth, frontPanelHeight, 1)
-    frontp.position.set(0, 0, -rowDepth);
+    frontp.position.set(0, 0, rowDepth);
     if (useColors) frontp.material.color.set(getColor());
     // frontp.rotation.x = -Math.PI / 2;
     // frontp.scale.set(columnWidth, dividerHeight, rowDepth)
@@ -379,15 +413,15 @@ function boxGroup2(columnWidth, dividerHeight, rowDepth, rowTopDepth, frontPanel
 
 
   if (backPanel) {
-    let backp=rectangle(1,1,glassThickness)
+    let backp=rectangle(1,1,glassThickness, sharedMaterial)
     backp.scale.set(columnWidth, dividerHeight, 1)
     if (useColors) backp.material.color.set(getColor());
     group.add(backp);
   }
 
   if (topPanel) {
-    let topp=rectangle(1,1,glassThickness)
-    topp.scale.set(columnWidth, rowTopDepth, 1)
+    let topp=rectangle(1,1,glassThickness, sharedMaterial)
+    topp.scale.set(columnWidth, -rowTopDepth, 1)
     topp.position.set(0, dividerHeight, 0);
     if (useColors) topp.material.color.set(getColor());
     topp.rotation.x = -Math.PI / 2;
@@ -395,7 +429,7 @@ function boxGroup2(columnWidth, dividerHeight, rowDepth, rowTopDepth, frontPanel
   }
   
 
-  const arcSeparator=arc(-rowDepth,-rowTopDepth,dividerHeight,frontPanelHeight)
+  const arcSeparator=arc(rowDepth,rowTopDepth,dividerHeight,frontPanelHeight)
   if (useColors) arcSeparator.material.color.set(getColor());
   group.add(arcSeparator);
   if (closingSeparator) {
@@ -407,7 +441,32 @@ function boxGroup2(columnWidth, dividerHeight, rowDepth, rowTopDepth, frontPanel
   return group
 }
 
-function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided) {
+function isMatch(expression,column,row,position) {
+  const defaultPosition='BL'
+  const tokens=expression.split(',')
+  let match = false
+  let result
+  tokens.forEach(token => {
+    // Process each token here
+    console.log(`Processing token: ${token.trim()}`); // Example action: log each token
+    const items=token.trim().split(' ')
+    if ((items.length>2) && (!match)) {
+      if (((items[0]=="*") || (items[0]==column)) && ((items[1]=="*") || (items[1]==row))) {
+        console.log(`match for ${items[2]} `)
+        if ( (items.length==3 && (position==defaultPosition)) || (items.length==4 && (items[3].trim()==position))) {
+          match = true
+          result = items[2]
+        }
+        
+      }
+    } else {
+      console.log(`token error: ${token} ${items.length}`)
+    }
+  });
+  return result
+}
+
+function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors) {
       clearStructure();
       markerIndex = 1;
 
@@ -451,6 +510,9 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
               // scene.add(verticalDivider);
               const isFirstColumn = (i == (vBars-1))
               const isTopShelf = (row == (hBars-1))
+              const isBottomShelf = (row == 0)
+              const isLeftColumn = (i == 0)
+              const isRightColumn = (i == (vBars-1))
               // let box=boxGroup(true, isFirstColumn).clone()
 
               // console.log(`isFirstColumn: ${isFirstColumn}`)
@@ -470,6 +532,123 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                   currentHeightOffset / 1,
                   0
               );
+              
+              // const radius=1000
+              const plateWidth=20
+              const plateHeight=10
+              // const partType="TipoX"
+
+
+              const basePosition=box.position
+
+              if (isShowConnectors) {
+
+                // add base piece
+                const offset=plateWidth/2
+                const offsetY=plateHeight/2
+
+                let partType
+                let backType
+                
+                if (isBottomShelf) {
+                  if (isLeftColumn) { 
+                    if (doubleSided) {
+                      partType="pe canto d"
+                      backType="pe bolao"
+                    } else {
+                      partType="pe canto"
+                      backType="pe canto"
+                    }
+                  } else {
+                    if (doubleSided) {
+                      partType="pe meio"
+                      backType="pe bolao"
+                    } else {
+                      partType="pe meio"
+                      backType="pe meio"
+                    }
+                  }  
+                } else {
+                  if (isLeftColumn) { 
+                    if (doubleSided) {
+                      partType="meio canto d"
+                      backType="meio back"
+                    } else {
+                      partType="meio canto"
+                      backType="meio back"
+                    }
+                  } else {
+                    if (doubleSided) {
+                      partType="meio meio"
+                      backType="meio bolao"
+                    } else {
+                      partType="meio meio"
+                      backType="meio back"
+                    }
+                  }  
+                }
+
+                  // back conector
+                  let label = `${i},${row}: ${backType}`
+                  drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z, plateWidth, plateHeight, label, labelMaterial);
+
+                  // front conector
+                  label = `${i},${row}: ${partType}`
+                  drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z+rowDepth, plateWidth, plateHeight, label);
+
+                  // parte fechamento
+                  if (isRightColumn) {
+                    if (isBottomShelf) {
+                      partType="pe canto"
+                    } else {
+                      partType="meio canto"
+                    }
+                    label = `${i},${row}: ${partType}`
+                    drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z, plateWidth, plateHeight, label);
+                    drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z+rowDepth, plateWidth, plateHeight, label);
+                  }
+
+                  // top conectors
+                  if (isTopShelf) {
+                      if (isLeftColumn) {
+                        partType="top canto"
+                      } else {
+                        partType="top meio"
+                      }
+                      label = `${i},${row}: ${partType}`
+                      drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z, plateWidth, plateHeight, label);
+                      drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z+rowTopDepth, plateWidth, plateHeight, label);
+                      if (isRightColumn) {
+                        partType="top canto"
+                        label = `${i},${row}: ${partType}`
+                        drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z, plateWidth, plateHeight, label);
+                        drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z+rowTopDepth, plateWidth, plateHeight, label);
+                      }
+                  }
+
+              }
+
+              if (isShowLabels) {
+                  const expression=labelsParam
+                  let position='BL'
+                  const labelText=isMatch(expression,i,row,position)
+                  // console.log(`labelText is ${labelText} / ${labelText.length}`)
+                  if (labelText) {
+                    // const labelText=expression.split(' ')[2]
+                    const label = `${i},${row} ${position}: ${labelText}`
+                    console.log(`will Draw Plate`)
+                    drawPlate(box.position.x, box.position.y, box.position.z, plateWidth, plateHeight, label, labelMaterial);
+                  }
+                  position='TR'
+                  const labelTextTR=isMatch(expression,i,row,position)
+                  // console.log(`labelText is ${labelText} / ${labelText.length}`)
+                  if (labelTextTR) {
+                    // const labelText=expression.split(' ')[2]
+                    const label = `${i},${row} ${position}: ${labelTextTR} `
+                    console.log(`will Draw Plate`)
+                    drawPlate(box.position.x + columnWidth - plateWidth, box.position.y + dividerHeight - plateHeight, box.position.z, plateWidth, plateHeight, label, labelMaterial);
+                  }
+                }
               // base_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
               // back_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
               // front_panel.scale.set(columnWidth*factor, dividerHeight*factor, -rowDepth*factor);
@@ -485,6 +664,101 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                     currentHeightOffset / 1,
                     0
                 );
+
+                const basePosition=boxOpposite.position
+
+                // OBS backType is not ued on double
+
+                if (isShowConnectors) {
+                  // add base piece
+                  const offset=plateWidth/2
+                  const offsetY=plateHeight/2
+
+                  let partType
+                  let backType
+
+                  if (isBottomShelf) {
+                    if (isLeftColumn) { 
+                      if (doubleSided) {
+                        partType="pe canto d"
+                        backType="pe bolao"
+                      } else {
+                        partType="pe canto"
+                        backType="pe canto"
+                      }
+                    } else {
+                      if (doubleSided) {
+                        partType="pe meio"
+                        backType="pe bolao"
+                      } else {
+                        partType="pe meio"
+                        backType="pe meio"
+                      }
+                    }  
+                  } else {
+                    if (isLeftColumn) { 
+                      if (doubleSided) {
+                        partType="meio canto d"
+                        backType="meio back"
+                      } else {
+                        partType="meio canto"
+                        backType="meio back"
+                      }
+                    } else {
+                      if (doubleSided) {
+                        partType="meio meio"
+                        backType="meio bolao"
+                      } else {
+                        partType="meio meio"
+                        backType="meio meio back"
+                      }
+                    }  
+                  }
+
+                  // front conector
+                  let label = `${i},${row}: ${partType}`
+                  drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
+
+                  // parte fechamento
+                  if (isRightColumn) {
+                    if (isBottomShelf) {
+                      partType="pe canto"
+                    } else {
+                      partType="meio canto"
+                    }
+                    label = `${i},${row}: ${partType}`
+                    drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
+                  }
+
+                  // top conectors
+                  if (isTopShelf) {
+                      if (isLeftColumn) {
+                        partType="top canto"
+                      } else {
+                        partType="top meio"
+                      }
+                      label = `${i},${row}: ${partType}`
+                      drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, plateWidth, plateHeight, label);
+                      if (isRightColumn) {
+                        partType="top canto"
+                        label = `${i},${row}: ${partType}`
+                        drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, plateWidth, plateHeight, label);
+                      }
+                  }
+
+                }
+                
+
+                if (isShowLabels) {
+                  const expression=labelsParam
+                  let position='TL'
+                  const labelText=isMatch(expression,i,row,position)
+                  if (labelText) {
+                    const label = `${i},${row}: ${labelText}`
+                    drawPlate(boxOpposite.position.x, boxOpposite.position.y, boxOpposite.position.z, width, height, label);
+                  }
+                }
+                
                 // boxOpposite.rotation.y = -Math.PI / 4;
                 // boxOpposite.scale.set(columnWidth*factor, dividerHeight*factor, rowDepth*factor);
                 groupOpposite.add(boxOpposite)
@@ -535,18 +809,50 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
       }
 
       // Draw circles with numbers if needed
-      if (showCircles) {
-          for (let i = 0; i <= hBars; i++) {
-              for (let j = 0; j <= vBars; j++) {
-                  // drawCircleWithNumber(j, i, hBars, vBars, heights, glassThickness, shelfWidth);
-              }
-          }
-      }
+      // if (isShowLabels) {
+      //     for (let i = 0; i <= hBars; i++) {
+      //         for (let j = 0; j <= vBars; j++) {
+      //           const text="001"
+      //           drawCircleWithNumber(j, i, hBars, vBars, heights, glassThickness, shelfWidth, text);
+      //         }
+      //     }
+      // }
   }
 
 
+function drawPlate(x, y, z, width, height, label, material) {
+  let plate=rectangle(width,height,0.25, (material || plateMaterial))
+  plate.position.set(
+      x,
+      y,
+      z
+  );
+  scene.add(plate);
+  console.log("PLATE added")
+
+  const textGeometry = new TextGeometry(label, {
+          font: font,
+          size: fontSize,
+          height: 0.2,
+      });
+
+  // Create a material for the text
+  const textMaterial = new THREE.MeshBasicMaterial({ color: fontColor });
+  
+  // Create a mesh using the geometry and material
+  const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+      
+  textMesh.position.set(
+    x+1.5,
+    y+3.5,
+    z+1,
+  );
+  scene.add(textMesh);
+  markerIndex++;
+}
+
 // Function to draw circles with numbers
-function drawCircleWithNumber(xIndex, yIndex, hBars, vBars, heights, glassThickness, shelfWidth) {
+function drawCircleWithNumber(xIndex, yIndex, hBars, vBars, heights, glassThickness, shelfWidth, label) {
     const radius = 0.75;
     const circleGeometry = new THREE.CircleGeometry(radius, 32);
     const circleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -559,19 +865,24 @@ function drawCircleWithNumber(xIndex, yIndex, hBars, vBars, heights, glassThickn
     );
     scene.add(circle);
 
-    const textGeometry = new THREE.TextGeometry(markerIndex.toString(), {
-        font: new THREE.FontLoader().parse(fontJson), // Assuming fontJson is available
-        size: 1,
-        height: 0.2
-    });
-    const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const text = new THREE.Mesh(textGeometry, textMaterial);
-    text.position.set(
-        circle.position.x - 0.5,
-        circle.position.y - 0.25,
+    const textGeometry = new TextGeometry(label, {
+            font: font,
+            size: 5,
+            height: 0.2,
+        });
+
+    // Create a material for the text
+    const textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    
+    // Create a mesh using the geometry and material
+    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+        
+    textMesh.position.set(
+        circle.position.x,
+        circle.position.y,
         0
     );
-    scene.add(text);
+    scene.add(textMesh);
     markerIndex++;
 }
 
@@ -634,11 +945,11 @@ async function onGenerateStructure() {
   const dBars = parseInt(document.getElementById('depthBars').value);
   const heights = document.getElementById('heightsPerRow').value.split(',').map(Number);
   const depths = document.getElementById('depthPerRow').value.split(',').map(Number);
-  showCircles = document.getElementById('showCircles').checked;
+  isShowLabels = document.getElementById('isShowLabels').checked;
   const doubleSided = document.getElementById('doubleSided').checked; // Get the value of the double sided checkbox
   totalWidth = parseFloat(document.getElementById('totalWidth').value);  // Get the total width value
 
-  generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided);
+  generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors);
 }
 
 
@@ -729,21 +1040,39 @@ onMount(async () => {
     <input class="text-input-sm"  type="number" id="glassThickness" bind:value={glassThickness}>
   </div>
  
-  <div class="option">
-    <label class="form-check-label" for="showCircles">Mostrar Círculos</label>
- 
-    <input class="form-check-input" disabled="true" type="checkbox" id="showCircles" checked>
-  </div>
-  
+
   <div class="option">
     <label class="form-check-label" for="doubleSided">Estrutura Dupla</label>
 
     <input class="form-check-input input-div" type="checkbox" id="doubleSided"  bind:checked={doubleSided}>
   </div>
+
+  <div class="option">
+      <label class="form-check-label" for="fontColor">fontColor</label>
+      <input class="text-input-md"  type="text" id="fontColor" bind:value={fontColor}>
+  </div>
+
+  <div class="option">
+      <label class="form-check-label" for="fontSize">fontSize</label>
+      <input class="text-input-sm"  type="text" id="fontSize" bind:value={fontSize}>
+  </div>
+
+  <div class="option">
+      <label class="form-check-label" for="isShowLabels">Etiquetas</label>
+      <input class="form-check-input" type="checkbox" id="isShowLabels" bind:checked={isShowLabels}>
+  </div>
+
+  <div class="option" style="margin-bottom:20px">
+      <input class="text-input-wide"  type="text" id="labelsParam" bind:value={labelsParam}>
+  </div>
+
+  <div class="option">
+      <label class="form-check-label" for="isShowConnectors">Conectores</label>
+      <input class="form-check-input" type="checkbox" id="isShowConnectors" bind:checked={isShowConnectors}>
+  </div>
+
   
-  
-  
-  <button class="btn btn-primary" on:click={onGenerateStructure}>Gerar Estrutura</button>
+    <button class="btn btn-primary" on:click={onGenerateStructure}>Gerar Estrutura</button>
 <!-- Add this in your HTML -->
 </div>
 
@@ -757,7 +1086,7 @@ onMount(async () => {
     bottom: 16px;
     left: 16px;
     padding: 32px;
-    width: 300px;
+    width: 400px;
     padding: 0px 16px 16px 16px;
     gap: 6px
   }
@@ -797,6 +1126,11 @@ onMount(async () => {
     /* height: 100vh; */
   }
 
+  .text-input-wide {
+    width: 100%;
+    /* height: 100vh; */
+  }
+
   .text-input-sm {
     width: 50px;
     /* height: 100vh; */
@@ -804,6 +1138,7 @@ onMount(async () => {
 
 
 </style>
+
 
 
 
