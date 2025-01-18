@@ -20,13 +20,17 @@
   let vertical_separators = 1
   let height_per_row = 1.0
   let depth_per_row= 1.0
+  const circleRadius = 3
 
+  // Show avancedinputs
+  let show = $page.url.searchParams.get("show") || false
   
   let totalWidth = $page.url.searchParams.get("totalWidth") || "250"
+  let shelfWidth = $page.url.searchParams.get("shelfWidth") || "50"
 
   let horizontalBars = $page.url.searchParams.get("horizontalBars") || "3"
-  let verticalBars = $page.url.searchParams.get("verticalBars") || "2"
-  // let depthBars = $page.url.searchParams.get("depthBars") || "5"
+  let verticalBars = $page.url.searchParams.get("verticalBars") || "5"
+  let depthBars = $page.url.searchParams.get("depthBars") || "5"
   let depthPerRow = $page.url.searchParams.get("depthPerRow") || "100,70,40,30"
   let heightsPerRow = $page.url.searchParams.get("heightsPerRow") || "60,50,40,30,20"
   let doubleSided =  $page.url.searchParams.get("doubleSided") || false
@@ -36,6 +40,7 @@
   let curveParam =  $page.url.searchParams.get("curveParam") || "5"
   let isShowConnectors =  $page.url.searchParams.get("isShowConnectors") || true
   let isShowLabels =  $page.url.searchParams.get("isShowLabels") || false
+  let hasFeet =  $page.url.searchParams.get("hasFeet") || true
   let labelsParam =  $page.url.searchParams.get("labelsParam") || "* 0 part, * 1 another, 0 1 xyz TR"
 
   let glassThickness =  $page.url.searchParams.get("glassThickness") || 0.25
@@ -43,6 +48,10 @@
 
   let fontSize = $page.url.searchParams.get("fontSize") || 2
   let fontColor = $page.url.searchParams.get("fontColor") || "0x000000"
+
+  $: verticalBars = Math.trunc(totalWidth / shelfWidth)
+
+  
 
   let options = [
     { label: "Fundo Branco", value: "" },
@@ -371,6 +380,7 @@ const rectangle = (x, y, z, material) => {
 
   const extrudeSettings = { depth: z, bevelEnabled: false };
   const extrudeGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
   const extrudeMesh = new THREE.Mesh(extrudeGeometry, material);
   // Rotate the shape along the Y-axis
   // extrudeMesh.rotation.y = -Math.PI / 2; // 90 degrees in radians
@@ -378,6 +388,27 @@ const rectangle = (x, y, z, material) => {
   return extrudeMesh
   // return mesh
 }
+
+const circle = (radius, height, material) => {
+  // Create a shape
+  const shape = new THREE.Shape();
+
+  // Define the circular path
+  shape.absarc(0, 0, radius, 0, Math.PI * 2, false); // Full circle
+
+  // Create extrude settings
+  const extrudeSettings = { depth: height, bevelEnabled: false };
+
+  // Create geometry from the shape
+  const extrudeGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+  // Create a mesh
+  const extrudeMesh = new THREE.Mesh(extrudeGeometry, material);
+
+  // Return the mesh
+  return extrudeMesh;
+};
+
 
 const getColor = () => {
   return (Math.random() * 0x770000)
@@ -464,9 +495,29 @@ function isMatch(expression,column,row,position) {
     }
   });
   return result
+  
 }
 
-function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors) {
+// Define a map of labels to colors
+const labelColorMap = new Map([
+  ["PC", 0xff0000],
+  ["PM", 0xffff00],
+  ["PB", 0x0000ff],
+  ["BL", 0x00ff00],
+  ["1", 0xdda0dd],
+  ["2", 0xff0000],
+  ["3", 0x0000ff],
+  ["4", 0x0000ff],
+  ["5", 0x00ff00],
+  ["6", 0x00ff00]
+]);
+
+// Query the map
+const queryLabel = (label) => {
+  return labelColorMap.get(label) || 0xffffff; // Return a default color if label is not found
+};
+
+function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors, hasFeet) {
       clearStructure();
       markerIndex = 1;
 
@@ -533,7 +584,7 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                   0
               );
               
-              // const radius=1000
+              const radius=10
               const plateWidth=20
               const plateHeight=10
               // const partType="TipoX"
@@ -544,8 +595,8 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
               if (isShowConnectors) {
 
                 // add base piece
-                const offset=plateWidth/2
-                const offsetY=plateHeight/2
+                const offset=0
+                const offsetY=0
 
                 let partType
                 let backType
@@ -553,76 +604,107 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                 if (isBottomShelf) {
                   if (isLeftColumn) { 
                     if (doubleSided) {
-                      partType="pe canto d"
-                      backType="pe bolao"
+                      if (hasFeet) {
+                        partType="PC"
+                        backType="PM"
+                      } else {
+                        partType="1"
+                        backType="1"
+                      }
                     } else {
-                      partType="pe canto"
-                      backType="pe canto"
+                      if (hasFeet) {
+                        partType="PC"
+                        backType="PC"
+                      } else {
+                        partType="1"
+                        backType="1"
+                      }
                     }
                   } else {
                     if (doubleSided) {
-                      partType="pe meio"
-                      backType="pe bolao"
+                      if (hasFeet) {
+                        partType="PM"
+                        backType="PB"
+                      } else {
+                        partType="3"
+                        backType="3"
+                      }
                     } else {
-                      partType="pe meio"
-                      backType="pe meio"
+                      if (hasFeet) {
+                        partType="PM"
+                        backType="PM"
+                      } else {
+                        partType="3"
+                        backType="3"
+                      }
+
                     }
                   }  
                 } else {
                   if (isLeftColumn) { 
                     if (doubleSided) {
-                      partType="meio canto d"
-                      backType="meio back"
+                      partType="3"
+                      backType="6"
                     } else {
-                      partType="meio canto"
-                      backType="meio back"
+                      partType="3"
+                      backType="4"
                     }
                   } else {
                     if (doubleSided) {
-                      partType="meio meio"
-                      backType="meio bolao"
+                      partType="5"
+                      backType="BL"
                     } else {
-                      partType="meio meio"
-                      backType="meio back"
+                      partType="5"
+                      backType="6"
                     }
                   }  
                 }
 
                   // back conector
-                  let label = `${i},${row}: ${backType}`
-                  drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z, plateWidth, plateHeight, label, labelMaterial);
+                  // let label = `${i},${row}: ${backType}`
+                  let label = `${backType}`
+                  drawConnector(basePosition.x, basePosition.y-offsetY, basePosition.z, radius, label, labelMaterial, queryLabel(backType));
 
                   // front conector
-                  label = `${i},${row}: ${partType}`
-                  drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z+rowDepth, plateWidth, plateHeight, label);
+                  label = `${partType}`
+                  drawConnector(basePosition.x, basePosition.y-offsetY, basePosition.z+rowDepth, radius, label,  labelMaterial, queryLabel(partType));
 
                   // parte fechamento
                   if (isRightColumn) {
                     if (isBottomShelf) {
-                      partType="pe canto"
+                      if (hasFeet) {
+                        partType="PC"
+                      } else {
+                        partType="1"
+                      }
                     } else {
-                      partType="meio canto"
+                      partType="3"
                     }
-                    label = `${i},${row}: ${partType}`
-                    drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z, plateWidth, plateHeight, label);
-                    drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z+rowDepth, plateWidth, plateHeight, label);
+                    label = `${partType}`
+                    drawConnector(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z, radius, label,  labelMaterial, queryLabel(partType));
+                    drawConnector(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z+rowDepth, radius, label, labelMaterial, queryLabel(partType));
                   }
 
                   // top conectors
                   if (isTopShelf) {
                       if (isLeftColumn) {
-                        partType="top canto"
+                        partType="1"
+                        backType="4"
                       } else {
-                        partType="top meio"
+                        partType="3"
+                        backType="4"
                       }
-                      label = `${i},${row}: ${partType}`
-                      drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z, plateWidth, plateHeight, label);
-                      drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z+rowTopDepth, plateWidth, plateHeight, label);
+                      label = `${partType}`
+                      const labelBack = `${backType}`
+                      drawConnector(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z, radius, labelBack,  labelMaterial, queryLabel(backType));
+                      drawConnector(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z+rowTopDepth, radius, label,  labelMaterial, queryLabel(partType));
                       if (isRightColumn) {
-                        partType="top canto"
-                        label = `${i},${row}: ${partType}`
-                        drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z, plateWidth, plateHeight, label);
-                        drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z+rowTopDepth, plateWidth, plateHeight, label);
+                        partType="1"
+                        backType="4"
+                        label = `${partType}`
+                        const labelBack = `${backType}`
+                        drawConnector(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z, radius, labelBack,  labelMaterial, queryLabel(backType));
+                        drawConnector(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z+rowTopDepth, radius, label,  labelMaterial, queryLabel(partType));
                       }
                   }
 
@@ -671,78 +753,109 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
 
                 if (isShowConnectors) {
                   // add base piece
-                  const offset=plateWidth/2
-                  const offsetY=plateHeight/2
+                  const offset=0
+                  const offsetY=0
 
                   let partType
                   let backType
 
                   if (isBottomShelf) {
-                    if (isLeftColumn) { 
-                      if (doubleSided) {
-                        partType="pe canto d"
-                        backType="pe bolao"
+                  if (isLeftColumn) { 
+                    if (doubleSided) {
+                      if (hasFeet) {
+                        partType="PC"
+                        backType="PM"
                       } else {
-                        partType="pe canto"
-                        backType="pe canto"
+                        partType="1"
+                        backType="PB"
                       }
                     } else {
-                      if (doubleSided) {
-                        partType="pe meio"
-                        backType="pe bolao"
+                      if (hasFeet) {
+                        partType="PC"
+                        backType="PC"
                       } else {
-                        partType="pe meio"
-                        backType="pe meio"
+                        partType="1"
+                        backType="1"
                       }
-                    }  
+                    }
                   } else {
-                    if (isLeftColumn) { 
-                      if (doubleSided) {
-                        partType="meio canto d"
-                        backType="meio back"
+                    if (doubleSided) {
+                      if (hasFeet) {
+                        partType="PM"
+                        backType="PB"
                       } else {
-                        partType="meio canto"
-                        backType="meio back"
+                        partType="3"
+                        backType="3"
                       }
                     } else {
-                      if (doubleSided) {
-                        partType="meio meio"
-                        backType="meio bolao"
+                      if (hasFeet) {
+                        partType="PM"
+                        backType="PM"
                       } else {
-                        partType="meio meio"
-                        backType="meio meio back"
+                        partType="3"
+                        backType="3"
                       }
-                    }  
-                  }
+
+                    }
+                  }  
+                } else {
+                  if (isLeftColumn) { 
+                    if (doubleSided) {
+                      partType="3"
+                      backType="6"
+                    } else {
+                      partType="3"
+                      backType="4"
+                    }
+                  } else {
+                    if (doubleSided) {
+                      partType="5"
+                      backType="BL"
+                    } else {
+                      partType="5"
+                      backType="6"
+                    }
+                  }  
+                }
 
                   // front conector
-                  let label = `${i},${row}: ${partType}`
-                  drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
+                  let label = `${partType}`
+                  drawConnector(basePosition.x  - offset, basePosition.y - offsetY, basePosition.z-rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                  // drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
 
                   // parte fechamento
                   if (isRightColumn) {
                     if (isBottomShelf) {
-                      partType="pe canto"
+                      if (hasFeet) {
+                        partType="PC"
+                      } else {
+                        partType="1"
+                      }
+                      
                     } else {
-                      partType="meio canto"
+                      partType="3"
                     }
-                    label = `${i},${row}: ${partType}`
-                    drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
+                    label = `${partType}`
+                    drawConnector(basePosition.x + columnWidth  - offset, basePosition.y - offsetY, basePosition.z-rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                    // drawPlate(basePosition.x + columnWidth - offset, basePosition.y - offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
                   }
 
                   // top conectors
                   if (isTopShelf) {
                       if (isLeftColumn) {
-                        partType="top canto"
+                        partType="1"
                       } else {
-                        partType="top meio"
+                        partType="3"
                       }
-                      label = `${i},${row}: ${partType}`
-                      drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, plateWidth, plateHeight, label);
+                      label = `${partType}`
+                      drawConnector(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, radius, label,  labelMaterial, queryLabel(partType));
+                      // drawPlate(basePosition.x - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, plateWidth, plateHeight, label);
                       if (isRightColumn) {
-                        partType="top canto"
-                        label = `${i},${row}: ${partType}`
-                        drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, plateWidth, plateHeight, label);
+                        partType="1"
+                        label = `${partType}`
+                        drawConnector(basePosition.x + columnWidth  - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, radius, label,  labelMaterial, queryLabel(partType));
+
+                        // drawPlate(basePosition.x + columnWidth - offset, basePosition.y + dividerHeight - offsetY, basePosition.z-rowTopDepth, plateWidth, plateHeight, label);
                       }
                   }
 
@@ -779,6 +892,8 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
       }
 
       // Create horizontal shelves
+
+      /*
       let currentHeight = 0;
       for (let i = 0; i <= hBars; i++) {
           currentHeight += i > 0 ? heights[i - 1] + glassThickness : 0;
@@ -807,6 +922,7 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
               }
           }
       }
+      */
 
       // Draw circles with numbers if needed
       // if (isShowLabels) {
@@ -820,8 +936,21 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
   }
 
 
-function drawPlate(x, y, z, width, height, label, material) {
-  let plate=rectangle(width,height,0.25, (material || plateMaterial))
+function drawPlate(x, y, z, width, height, label, material, color) {
+  let plate
+  if (color) {
+    console.log(`colored plate ${color}` )
+    const coloredMaterial = new THREE.MeshBasicMaterial({
+      color: color// Orange color in hexadecimal
+    });
+    // plate=rectangle(width,height,0.25, (coloredMaterial))
+    plate=circle(circleRadius,0.1, (coloredMaterial))
+  } else {
+    //plate=circle(width,height,0.25, (material || plateMaterial))
+    plate=circle(circleRadius,0.25, (material || plateMaterial))
+    // plate=rectangle(width,height,0.25, (material || plateMaterial))
+  }
+
   plate.position.set(
       x,
       y,
@@ -846,6 +975,50 @@ function drawPlate(x, y, z, width, height, label, material) {
     x+1.5,
     y+3.5,
     z+1,
+  );
+  scene.add(textMesh);
+  markerIndex++;
+}
+
+function drawConnector(x, y, z, radius, label, material, color) {
+  let plate
+  if (color) {
+    console.log(`colored plate ${color}` )
+    const coloredMaterial = new THREE.MeshBasicMaterial({
+      color: color// Orange color in hexadecimal
+    });
+    // plate=rectangle(width,height,0.25, (coloredMaterial))
+    plate=circle(circleRadius,0.1, (coloredMaterial))
+  } else {
+    //plate=circle(width,height,0.25, (material || plateMaterial))
+    plate=circle(circleRadius,0.25, (material || plateMaterial))
+    // plate=rectangle(width,height,0.25, (material || plateMaterial))
+  }
+
+  plate.position.set(
+      x,
+      y,
+      z
+  );
+  scene.add(plate);
+  console.log("PLATE added")
+
+  const textGeometry = new TextGeometry(label, {
+          font: font,
+          size: fontSize,
+          height: 0.2,
+      });
+
+  // Create a material for the text
+  const textMaterial = new THREE.MeshBasicMaterial({ color: fontColor });
+  
+  // Create a mesh using the geometry and material
+  const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+      
+  textMesh.position.set(
+    x-(label.length*0.7),
+    y-0.5,
+    z+0.1,
   );
   scene.add(textMesh);
   markerIndex++;
@@ -942,14 +1115,14 @@ async function onGenerateStructure() {
 
   const vBars = parseInt(document.getElementById('verticalBars').value);
   const hBars = parseInt(document.getElementById('horizontalBars').value);
-  const dBars = parseInt(document.getElementById('depthBars').value);
+  const dBars = null //parseInt(document.getElementById('depthBars').value);
   const heights = document.getElementById('heightsPerRow').value.split(',').map(Number);
   const depths = document.getElementById('depthPerRow').value.split(',').map(Number);
-  isShowLabels = document.getElementById('isShowLabels').checked;
+  isShowLabels = show?document.getElementById('isShowLabels').checked:false;
   const doubleSided = document.getElementById('doubleSided').checked; // Get the value of the double sided checkbox
   totalWidth = parseFloat(document.getElementById('totalWidth').value);  // Get the total width value
 
-  generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors);
+  generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors, hasFeet);
 }
 
 
@@ -980,99 +1153,141 @@ onMount(async () => {
 
 
 
-  <h3 style="height: 48px; width: 100%;text-align:start;display:flex; justify-content:start;align-items:center">Estante de Vidro : </h3>
+  <!-- <h3 style="height: 48px; width: 100%;text-align:start;display:flex; justify-content:start;align-items:center">Estante de Vidro : </h3> -->
   
-  <div style="margin-bottom: 10px" >
-    <select bind:value={selectedOption}>
-      {#each options as { label, value }}
-        <option value={value}>{label}</option>
-      {/each}
-    </select>
+  {#if show}
+    <div style="margin-bottom: 10px" >
+      <select bind:value={selectedOption}>
+        {#each options as { label, value }}
+          <option value={value}>{label}</option>
+        {/each}
+      </select>
+    </div>    
+  {/if}
+
+
+
+  <div class="options-container">
+    <div class="option">
+      <label for="totalWidth">Largura Total (cm)</label>
+      <input class="text-input-sm" type="number" id="totalWidth" bind:value={totalWidth} step="10">
+    </div>
+  
+    <div class="option">
+      <label for="verticalBars">Largura bandeja</label>
+      <input class="text-input-sm" type="number" id="shelfWidth" bind:value={shelfWidth} min="1">
+    </div>
+
+
   </div>
 
-  <div class="option" >
-    <label for="totalWidth">Largura Total (cm)</label>
-    <input class="text-input-sm" type="number" id="totalWidth" bind:value={totalWidth} step="10">
-  </div>
-  
-  <div class="option">
-    <label for="horizontalBars">Linhas</label>
-    <input class="text-input-sm"  type="number" id="horizontalBars" bind:value={horizontalBars} min="1">
-  </div>
-  <div class="option">
-    <label for="verticalBars">Colunas</label>
-    <input class="text-input-sm"  type="number" id="verticalBars" bind:value={verticalBars} min="1">
-  </div>
-  <div class="option" style="display:none;">
-    <label for="depthBars">Profundidade</label>
-    <input class="text-input"  type="number" id="depthBars" value=1 min="1">
-  </div>
+  <div class="options-container">
     <div class="option">
-      <label  for="depthPerRow">Profundidade por Linha (cm)</label>
+      <label for="horizontalBars">Linhas</label>
+      <input class="text-input-sm"  type="number" id="horizontalBars" bind:value={horizontalBars} min="1">
+    </div>
+    <div class="option">
+      <label for="verticalBars">Bandejas</label>
+      <input class="text-input-sm" type="number" disabled="true" id="verticalBars" bind:value={verticalBars} min="1">
+    </div>
+  </div>
+
+  <div class="options-container">
+    <div class="option">
+      <label  for="depthPerRow">Profundidade / linha</label>
       <input class="text-input"  type="text" id="depthPerRow" bind:value={depthPerRow}>
     </div>
     <div class="option">
-      <label for="heightsPerRow">Alturas por Linha (cm)</label>
+      <label for="heightsPerRow">Alturas por linha</label>
       <input class="text-input"  type="text" id="heightsPerRow" bind:value={heightsPerRow}>
     </div>
-    <div class="option">
-      <label for="frontPanelHeight">Aparador frontal ? (cm)</label>
-      <input class="form-check-input" type="checkbox" id="hasFront"  bind:checked={hasFront}>
-      <input class="text-input-sm"  type="text" id="frontPanelHeight" bind:value={frontPanelHeight}>
-    </div>
+  </div>
 
-    <div class="option">
+  <div class="options-container" style="margin-top: 30px;" >
+    <div class="option-check">
+      <label class="form-check-label" for="hasFront">Aparador frontal?</label>
+      <div class="input-group">
+        <input class="form-check-input" type="checkbox" id="hasFront" bind:checked={hasFront}>
+        <input class="text-input-sm" type="text" id="frontPanelHeight" bind:value={frontPanelHeight}>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="options-container">
+    <div class="option-check">
       <label class="form-check-label" for="doubleSided">Curvatura</label>
+      <div class="input-group"> 
+        <input class="form-check-input" type="checkbox" id="isCurved"  bind:checked={isCurved}>
+        <input class="text-input-sm"  type="number" id="curveParam" bind:value={curveParam}>
+      </div>
+    </div>
+  </div>
+
+  <div class="option-check">
+    <label class="form-check-label" for="doubleSided">Estrutura Dupla</label>
+    <div class="input-group">
+      <input class="form-check-input" type="checkbox" id="doubleSided"  bind:checked={doubleSided}>
+    </div>
+  </div>
+
+  <div class="option-check">
+      <label class="form-check-label" for="isShowConnectors">Conectores</label>
+      <div class="input-group">
+        <input class="form-check-input" type="checkbox" id="isShowConnectors" bind:checked={isShowConnectors}>
+      </div>
+  </div>
+
+  <div class="option-check">
+      <label class="form-check-label" for="hasFeet">Pés</label>
+      <div class="input-group">
+        <input class="form-check-input" type="checkbox" id="hasFeet" bind:checked={hasFeet}>
+      </div>
+  </div>
+
+
+  {#if show}
+    <div class="options-container">
+      <div class="option">
+        <label class="form-check-label" for="gap">Gap</label>
+        <input class="text-input-sm"  type="number" id="gap" bind:value={gap}>
+      </div>
+
+      <div class="option">
+        <label class="form-check-label" for="glassThickness">Espessura Vidro</label>
+
+        <input class="text-input-sm"  type="number" id="glassThickness" bind:value={glassThickness}>
+      </div>
+    </div>
   
-      <input class="form-check-input" type="checkbox" id="isCurved"  bind:checked={isCurved}>
-      <input class="text-input-sm"  type="number" id="curveParam" bind:value={curveParam}>
+
+
+    <div class="options-container">
+      <div class="option">
+          <label class="form-check-label" for="fontColor">fontColor</label>
+          <input class="text-input-md"  type="text" id="fontColor" bind:value={fontColor}>
+      </div>
+
+      <div class="option">
+          <label class="form-check-label" for="fontSize">fontSize</label>
+          <input class="text-input-sm"  type="text" id="fontSize" bind:value={fontSize}>
+      </div>
     </div>
 
-  <div class="option">
-    <label class="form-check-label" for="gap">Gap</label>
+    <div class="option">
+        <label class="form-check-label" for="isShowLabels">Etiquetas</label>
+        <input class="form-check-input" type="checkbox" id="isShowLabels" bind:checked={isShowLabels}>
+    </div>
 
-    <input class="text-input-sm"  type="number" id="gap" bind:value={gap}>
+    <div class="option" style="margin-bottom:20px">
+        <input class="text-input-wide"  type="text" id="labelsParam" bind:value={labelsParam}>
+    </div>
+  {/if}
+
+  <div class="button-container">
+    <button class="btn btn-primary" on:click={onGenerateStructure}>Criar Estante</button>
   </div>
-
-  <div class="option">
-    <label class="form-check-label" for="glassThickness">Espessura Vidro</label>
-
-    <input class="text-input-sm"  type="number" id="glassThickness" bind:value={glassThickness}>
-  </div>
- 
-
-  <div class="option">
-    <label class="form-check-label" for="doubleSided">Estrutura Dupla</label>
-
-    <input class="form-check-input input-div" type="checkbox" id="doubleSided"  bind:checked={doubleSided}>
-  </div>
-
-  <div class="option">
-      <label class="form-check-label" for="fontColor">fontColor</label>
-      <input class="text-input-md"  type="text" id="fontColor" bind:value={fontColor}>
-  </div>
-
-  <div class="option">
-      <label class="form-check-label" for="fontSize">fontSize</label>
-      <input class="text-input-sm"  type="text" id="fontSize" bind:value={fontSize}>
-  </div>
-
-  <div class="option">
-      <label class="form-check-label" for="isShowLabels">Etiquetas</label>
-      <input class="form-check-input" type="checkbox" id="isShowLabels" bind:checked={isShowLabels}>
-  </div>
-
-  <div class="option" style="margin-bottom:20px">
-      <input class="text-input-wide"  type="text" id="labelsParam" bind:value={labelsParam}>
-  </div>
-
-  <div class="option">
-      <label class="form-check-label" for="isShowConnectors">Conectores</label>
-      <input class="form-check-input" type="checkbox" id="isShowConnectors" bind:checked={isShowConnectors}>
-  </div>
-
-  
-    <button class="btn btn-primary" on:click={onGenerateStructure}>Gerar Estrutura</button>
+    
 <!-- Add this in your HTML -->
 </div>
 
@@ -1085,32 +1300,30 @@ onMount(async () => {
     flex-direction: column;
     bottom: 16px;
     left: 16px;
-    padding: 32px;
+    /* padding: 32px; */
     width: 400px;
-    padding: 0px 16px 16px 16px;
+    padding: 16px 16px 16px 16px;
     gap: 6px
   }
+
   body{
     margin: 0;
-    padding: 0;
+    /* padding: 0; */
   }
+
   *{
     font-family: "Helvetica";
     box-sizing: border-box;
     margin: 0;
-    padding: 0;
+    /* padding: 0; */
   }
-  canvas-container {
+
+  .canvas-container {
     display: block;
     
     background-color: aqua;
   }
-  .option{
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    /* background-color: red; */
-  }
+
   label{
     width: 100%;
   }
@@ -1131,10 +1344,57 @@ onMount(async () => {
     /* height: 100vh; */
   }
 
+  .options-container {
+    display: flex; /* Arrange children in a row */
+    justify-content: space-between; /* Space out the child elements */
+    gap: 1rem; /* Add spacing between the .option divs */
+  }
+
+
+  .option {
+    display: flex;
+    flex-direction: column; /* Stack label and input vertically */
+    align-items: flex-start; /* Align content to the start of the container */
+    width: 100%; /* Allow equal width for all .option elements */
+  }
+
+  .option-check {
+    display: flex;
+    align-items: flex-start; /* Align content to the start of the container */
+    width: 100%; /* Allow equal width for all .option elements */
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center; /* Align checkbox and text input vertically */
+    gap: 0.5rem; /* Add spacing between checkbox and text input */
+  }
+
+  .form-check-input {
+    width: 50%; /* Ensure the checkbox occupies minimal space */
+    margin: 0; /* Remove default margin if needed */
+  }
+
+  .form-check-label {
+    width: 50% /* Ensure the checkbox occupies minimal space */
+    margin: 0; /* Remove default margin if needed */
+  }
+
+
   .text-input-sm {
     width: 50px;
-    /* height: 100vh; */
+    /* margin-top: 0.5rem; */
+    /* flex-grow: 1;  */
   }
+
+  .button-container {
+    display: flex;
+    justify-content: center; /* Centers the button horizontally */
+    align-items: center; /* Centers the button vertically (if needed) */
+    margin-top: 30px; /* Keeps some space at the top */
+  }
+
+
 
 
 </style>
