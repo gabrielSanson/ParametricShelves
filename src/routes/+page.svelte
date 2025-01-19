@@ -47,7 +47,7 @@
   let gap =  $page.url.searchParams.get("gap") || 0.5
 
   let fontSize = $page.url.searchParams.get("fontSize") || 2
-  let fontColor = $page.url.searchParams.get("fontColor") || "0x000000"
+  let fontColor = $page.url.searchParams.get("fontColor") || "#000000"
 
   $: verticalBars = Math.trunc(totalWidth / shelfWidth)
 
@@ -419,9 +419,9 @@ function boxGroup2(columnWidth, dividerHeight, rowDepth, rowTopDepth, frontPanel
   // const fact=1;
   const useColors = false
 
-  console.log(`columnWidth: ${columnWidth} `)
-  console.log(`dividerHeight: ${dividerHeight} `)
-  console.log(`rowDepth: ${rowDepth} `)
+  // console.log(`columnWidth: ${columnWidth} `)
+  // console.log(`dividerHeight: ${dividerHeight} `)
+  // console.log(`rowDepth: ${rowDepth} `)
 
   const basep=rectangle(1,1,glassThickness, sharedMaterial)
   // let basep=base_panel.clone()
@@ -499,22 +499,41 @@ function isMatch(expression,column,row,position) {
 }
 
 // Define a map of labels to colors
+// const labelColorMap = new Map([
+//   ["PC", 0xff0000],
+//   ["PM", 0xffff00],
+//   ["PB", 0x0000cc],
+//   ["BL", 0x00ff00],
+//   ["L", 0xffa500],
+//   ["T", 0xffa577],
+//   ["1", 0xdda0dd],
+//   ["2", 0xff0000],
+//   ["3", 0x0000cc],
+//   ["4", 0x0000cc],
+//   ["5", 0x00ff00],
+//   ["6", 0x00ff00]
+// ]);
+
 const labelColorMap = new Map([
-  ["PC", 0xff0000],
-  ["PM", 0xffff00],
-  ["PB", 0x0000ff],
-  ["BL", 0x00ff00],
-  ["1", 0xdda0dd],
-  ["2", 0xff0000],
-  ["3", 0x0000ff],
-  ["4", 0x0000ff],
-  ["5", 0x00ff00],
-  ["6", 0x00ff00]
+  ["PC", 0xFF4D4D],  // Bright red
+  ["PM", 0xFFFF4D],  // Bright yellow
+  ["PB", 0x4D4DFF],  // Bright blue
+  ["BL", 0x4DFF4D],  // Bright green
+  ["L", 0xFFA64D],   // Bright orange
+  ["T", 0xFF80B3],   // Bright pink
+  ["1", 0xBF80FF],   // Bright lavender
+  ["2", 0xFF4D80],   // Vivid reddish-pink
+  ["3", 0x4DB3FF],   // Bright sky blue
+  ["4", 0x4D80FF],   // Bright cobalt blue
+  ["5", 0x80FF80],   // Light bright green
+  ["6", 0x80FF4D]    // Bright lime green
 ]);
 
 // Query the map
 const queryLabel = (label) => {
-  return labelColorMap.get(label) || 0xffffff; // Return a default color if label is not found
+  const someColor=labelColorMap.get(label) || 0xffffff; // Return a default color if label is not found
+  console.log(`${label} x ${someColor}`)
+  return someColor
 };
 
 function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors, hasFeet) {
@@ -526,7 +545,8 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
       const verticalCenterOffset = 0 //heights.reduce((a, b) => a + b, 0) / 2;
 
       // Calculate column width
-      const columnWidth = (shelfWidth - (glassThickness * (vBars + 1))) / vBars;
+      // const columnWidth = (shelfWidth - (glassThickness * (vBars + 1))) / vBars;
+      const columnWidth = (shelfWidth - (0 * (vBars + 1))) / vBars;
 
       // Create vertical dividers
       let rowTopDepth
@@ -543,6 +563,8 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
               const rowDepth = (depths[row] || depths[depths.length - 1]) * rowFactor;
               rowTopDepth=(depths[row+1] || (depths[row]))
               // console.log(`rowDepth ${rowDepth} / rowTopDepth ${rowTopDepth}`)
+
+              /*
               const geometry = new THREE.BoxGeometry(
                   glassThickness,
                   dividerHeight,
@@ -557,6 +579,7 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                   currentHeightOffset - verticalCenterOffset + dividerHeight / 2,
                   -rowDepth / 2
               );
+              */
 
               // scene.add(verticalDivider);
               const isFirstColumn = (i == (vBars-1))
@@ -589,15 +612,15 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
               const plateHeight=10
               // const partType="TipoX"
 
+              const offset=0
+              const offsetY=-2
+
 
               const basePosition=box.position
 
               if (isShowConnectors) {
 
                 // add base piece
-                const offset=0
-                const offsetY=0
-
                 let partType
                 let backType
                 
@@ -668,6 +691,25 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                   // front conector
                   label = `${partType}`
                   drawConnector(basePosition.x, basePosition.y-offsetY, basePosition.z+rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                  // console.log(`will draw FRONT ${i},${row}:${partType} at y:${basePosition.y-offsetY}`)
+
+                  // faceplate conector
+                  if (hasFront) {
+                    if (isLeftColumn) {
+                        partType="L"
+                    } else {
+                        partType="T"
+                    }
+                    label = `${partType}`
+                    // console.log(`will draw ${i},${row}:${partType} at y:${basePosition.y+frontPanelHeight}`)
+                    drawConnector(basePosition.x, basePosition.y+frontPanelHeight, basePosition.z+rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                    if (isRightColumn) {
+                      partType="L"
+                      label = `${partType}`
+                      drawConnector(basePosition.x + columnWidth, basePosition.y+frontPanelHeight, basePosition.z+rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                    }
+                  }
+                  
 
                   // parte fechamento
                   if (isRightColumn) {
@@ -688,11 +730,22 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
                   // top conectors
                   if (isTopShelf) {
                       if (isLeftColumn) {
-                        partType="1"
-                        backType="4"
+                        if (doubleSided) {
+                          partType="1"
+                          backType="4"
+                        } else {
+                          partType="1"
+                          backType="4"
+                        }
                       } else {
-                        partType="3"
-                        backType="4"
+                        if (doubleSided) {
+                          partType="3"
+                          backType="6"
+                        } else {
+                          partType="3"
+                          backType="4"
+                        }
+
                       }
                       label = `${partType}`
                       const labelBack = `${backType}`
@@ -753,75 +806,89 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
 
                 if (isShowConnectors) {
                   // add base piece
-                  const offset=0
-                  const offsetY=0
 
                   let partType
                   let backType
 
                   if (isBottomShelf) {
-                  if (isLeftColumn) { 
-                    if (doubleSided) {
-                      if (hasFeet) {
-                        partType="PC"
-                        backType="PM"
+                    if (isLeftColumn) { 
+                      if (doubleSided) {
+                        if (hasFeet) {
+                          partType="PC"
+                          backType="PM"
+                        } else {
+                          partType="1"
+                          backType="PB"
+                        }
                       } else {
-                        partType="1"
-                        backType="PB"
+                        if (hasFeet) {
+                          partType="PC"
+                          backType="PC"
+                        } else {
+                          partType="1"
+                          backType="1"
+                        }
                       }
                     } else {
-                      if (hasFeet) {
-                        partType="PC"
-                        backType="PC"
+                      if (doubleSided) {
+                        if (hasFeet) {
+                          partType="PM"
+                          backType="PB"
+                        } else {
+                          partType="3"
+                          backType="3"
+                        }
                       } else {
-                        partType="1"
-                        backType="1"
-                      }
-                    }
-                  } else {
-                    if (doubleSided) {
-                      if (hasFeet) {
-                        partType="PM"
-                        backType="PB"
-                      } else {
-                        partType="3"
-                        backType="3"
-                      }
-                    } else {
-                      if (hasFeet) {
-                        partType="PM"
-                        backType="PM"
-                      } else {
-                        partType="3"
-                        backType="3"
-                      }
+                        if (hasFeet) {
+                          partType="PM"
+                          backType="PM"
+                        } else {
+                          partType="3"
+                          backType="3"
+                        }
 
-                    }
-                  }  
-                } else {
-                  if (isLeftColumn) { 
-                    if (doubleSided) {
-                      partType="3"
-                      backType="6"
-                    } else {
-                      partType="3"
-                      backType="4"
-                    }
+                      }
+                    }  
                   } else {
-                    if (doubleSided) {
-                      partType="5"
-                      backType="BL"
+                    if (isLeftColumn) { 
+                      if (doubleSided) {
+                        partType="3"
+                        backType="6"
+                      } else {
+                        partType="3"
+                        backType="4"
+                      }
                     } else {
-                      partType="5"
-                      backType="6"
-                    }
-                  }  
-                }
+                      if (doubleSided) {
+                        partType="5"
+                        backType="BL"
+                      } else {
+                        partType="5"
+                        backType="6"
+                      }
+                    }  
+                  }
 
                   // front conector
                   let label = `${partType}`
                   drawConnector(basePosition.x  - offset, basePosition.y - offsetY, basePosition.z-rowDepth, radius, label,  labelMaterial, queryLabel(partType));
                   // drawPlate(basePosition.x-offset, basePosition.y-offsetY, basePosition.z-rowDepth, plateWidth, plateHeight, label);
+
+                  if (hasFront) {
+                    if (isLeftColumn) {
+                        partType="L"
+                    } else {
+                        partType="T"
+                    }
+                    label = `${partType}`
+                    // console.log(`will draw ${i},${row}:${partType} at y:${basePosition.y+frontPanelHeight}`)
+                    drawConnector(basePosition.x, basePosition.y+frontPanelHeight, basePosition.z-rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                    if (isRightColumn) {
+                      partType="L"
+                      label = `${partType}`
+                      drawConnector(basePosition.x + columnWidth, basePosition.y+frontPanelHeight, basePosition.z-rowDepth, radius, label,  labelMaterial, queryLabel(partType));
+                    }
+                  }
 
                   // parte fechamento
                   if (isRightColumn) {
@@ -939,9 +1006,9 @@ function generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanel
 function drawPlate(x, y, z, width, height, label, material, color) {
   let plate
   if (color) {
-    console.log(`colored plate ${color}` )
+    // console.log(`colored plate ${color}` )
     const coloredMaterial = new THREE.MeshBasicMaterial({
-      color: color// Orange color in hexadecimal
+      color: color
     });
     // plate=rectangle(width,height,0.25, (coloredMaterial))
     plate=circle(circleRadius,0.1, (coloredMaterial))
@@ -957,12 +1024,11 @@ function drawPlate(x, y, z, width, height, label, material, color) {
       z
   );
   scene.add(plate);
-  console.log("PLATE added")
+  // console.log("PLATE added")
 
   const textGeometry = new TextGeometry(label, {
           font: font,
           size: fontSize,
-          height: 0.2,
       });
 
   // Create a material for the text
@@ -983,9 +1049,8 @@ function drawPlate(x, y, z, width, height, label, material, color) {
 function drawConnector(x, y, z, radius, label, material, color) {
   let plate
   if (color) {
-    console.log(`colored plate ${color}` )
     const coloredMaterial = new THREE.MeshBasicMaterial({
-      color: color// Orange color in hexadecimal
+      color: color
     });
     // plate=rectangle(width,height,0.25, (coloredMaterial))
     plate=circle(circleRadius,0.1, (coloredMaterial))
@@ -1001,12 +1066,11 @@ function drawConnector(x, y, z, radius, label, material, color) {
       z
   );
   scene.add(plate);
-  console.log("PLATE added")
 
   const textGeometry = new TextGeometry(label, {
           font: font,
           size: fontSize,
-          height: 0.2,
+          depth: 0.1
       });
 
   // Create a material for the text
@@ -1122,7 +1186,7 @@ async function onGenerateStructure() {
   const doubleSided = document.getElementById('doubleSided').checked; // Get the value of the double sided checkbox
   totalWidth = parseFloat(document.getElementById('totalWidth').value);  // Get the total width value
 
-  generateShelfStructure(vBars, hBars, dBars, heights, depths, frontPanelHeight, doubleSided, isShowLabels, isShowConnectors, hasFeet);
+  generateShelfStructure(vBars, hBars, dBars, heights, depths, parseFloat(frontPanelHeight), doubleSided, isShowLabels, isShowConnectors, hasFeet);
 }
 
 

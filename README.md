@@ -1,3 +1,21 @@
+# Instructions
+
+To run
+
+```bash
+pnpm run dev
+
+```
+
+To deploy
+
+```bash
+pnpm run build
+
+BODY_SIZE_LIMIT=50000000 ORIGIN=http:/shelves.loveapp.io PORT=5180 node -r dotenv/config build
+
+```
+
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
