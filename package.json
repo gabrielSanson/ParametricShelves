@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"@sveltejs/adapter-node": "^5.2.11",
-		"@sveltejs/adapter-static": "^3.0.6",
+		"@sveltejs/adapter-static": "^3.0.8",
 		"bootstrap": "^5.3.3",
 		"dotenv": "^16.4.7",
 		"three": "^0.170.0"
